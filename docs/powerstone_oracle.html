@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✦ Crystal Oracle — 鉱石占いと類似度マップ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:    #03020a;
+  --deep:    #07041a;
+  --mid:     #0e0a2e;
+  --surface: #160e42;
+  --glass:   rgba(255,255,255,0.04);
+  --edge:    rgba(255,255,255,0.10);
+  --gold:    #c9a84c;
+  --gold-dim:#7a5e1e;
+  --silver:  #a8b8d0;
+  --text-hi: #f0eaff;
+  --text-mid:#9888c0;
+  --text-lo: #4a3870;
+  --glow:    rgba(201,168,76,0.15);
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-title: 'Cinzel', serif;
+  --font-mono:  'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;min-height:100vh;overflow-x:hidden;}
+body{
+  font-family:var(--font-serif);
+  background:var(--void);
+  color:var(--text-hi);
+  cursor:default;
+}
+
+/* ── 星空背景 ── */
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ── レイアウト ── */
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 20px 80px;}
+
+/* ── ヘッダー ── */
+header{
+  text-align:center;padding:48px 0 32px;
+  position:relative;
+}
+header::before{
+  content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:300px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.header-sigil{
+  font-size:11px;letter-spacing:0.4em;color:var(--gold-dim);
+  font-family:var(--font-title);text-transform:uppercase;margin-bottom:16px;
+}
+h1{
+  font-family:var(--font-title);
+  font-size:clamp(28px,5vw,52px);
+  font-weight:400;
+  color:var(--text-hi);
+  letter-spacing:0.15em;
+  line-height:1.1;
+  text-shadow:0 0 60px rgba(201,168,76,0.3);
+}
+h1 em{color:var(--gold);font-style:normal;}
+.header-sub{
+  margin-top:12px;font-size:15px;color:var(--text-mid);
+  letter-spacing:0.08em;font-weight:300;
+}
+
+/* ── ナビ ── */
+nav{
+  display:flex;justify-content:center;gap:0;
+  margin:32px 0 0;border:1px solid var(--edge);
+  border-radius:4px;overflow:hidden;width:fit-content;margin-inline:auto;
+}
+.nav-btn{
+  padding:10px 24px;font-family:var(--font-title);font-size:11px;
+  letter-spacing:0.15em;text-transform:uppercase;
+  background:transparent;color:var(--text-lo);
+  border:none;border-right:1px solid var(--edge);cursor:pointer;
+  transition:all 0.25s;
+}
+.nav-btn:last-child{border-right:none;}
+.nav-btn:hover{color:var(--text-mid);background:var(--glass);}
+.nav-btn.active{background:rgba(201,168,76,0.10);color:var(--gold);}
+
+/* ── パネル ── */
+.panel{display:none;animation:revealUp 0.4s ease;}
+.panel.active{display:block;}
+@keyframes revealUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── セクションタイトル ── */
+.sec-title{
+  font-family:var(--font-title);font-size:11px;letter-spacing:0.3em;
+  text-transform:uppercase;color:var(--gold-dim);
+  margin:36px 0 16px;
+  display:flex;align-items:center;gap:12px;
+}
+.sec-title::before,.sec-title::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold-dim));
+}
+.sec-title::after{background:linear-gradient(90deg,var(--gold-dim),transparent);}
+
+/* ── カード ── */
+.card{
+  background:var(--glass);
+  border:1px solid var(--edge);
+  border-radius:6px;
+  padding:20px 24px;
+  backdrop-filter:blur(8px);
+  transition:border-color 0.25s;
+}
+.card:hover{border-color:rgba(201,168,76,0.25);}
+
+/* ── ストーングリッド ── */
+.stone-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:8px;margin-bottom:20px;
+}
+.stone-item{
+  border-radius:6px;padding:12px 10px;text-align:center;
+  border:1px solid var(--edge);background:var(--glass);
+  cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;
+}
+.stone-item::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.25s;
+  background:radial-gradient(circle at 50% 30%, var(--stone-color, rgba(201,168,76,0.2)) 0%, transparent 70%);
+}
+.stone-item:hover::before{opacity:1;}
+.stone-item:hover{border-color:var(--stone-color,var(--gold));transform:translateY(-2px);}
+.stone-item.selected{
+  border-color:var(--gold);
+  box-shadow:0 0 20px var(--glow),inset 0 0 20px rgba(201,168,76,0.05);
+}
+.stone-gem{font-size:28px;display:block;margin-bottom:6px;filter:drop-shadow(0 0 6px var(--stone-color,rgba(201,168,76,0.5)));}
+.stone-name{font-family:var(--font-title);font-size:10px;letter-spacing:0.1em;color:var(--text-hi);}
+.stone-group{font-size:10px;color:var(--text-lo);margin-top:2px;}
+
+/* ── フィルターバー ── */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.filter-btn{
+  padding:5px 14px;border-radius:999px;font-size:11px;
+  font-family:var(--font-title);letter-spacing:0.1em;
+  border:1px solid var(--edge);background:transparent;
+  color:var(--text-lo);cursor:pointer;transition:all 0.2s;
+}
+.filter-btn:hover{color:var(--text-mid);border-color:var(--text-lo);}
+.filter-btn.active{background:rgba(201,168,76,0.12);color:var(--gold);border-color:var(--gold-dim);}
+
+/* ── 類似度マップ（Canvas） ── */
+#map-canvas{
+  width:100%;border-radius:8px;
+  border:1px solid var(--edge);
+  background:radial-gradient(ellipse at 50% 50%, rgba(22,14,66,0.9) 0%, var(--void) 100%);
+  cursor:crosshair;display:block;
+}
+.map-controls{display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap;}
+.map-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-mid);}
+.legend-dot{width:10px;height:10px;border-radius:50%;}
+
+/* ── 占いUI ── */
+.oracle-stage{
+  min-height:320px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:32px;
+  position:relative;
+}
+.crystal-ball{
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,
+    rgba(255,255,255,0.15) 0%,
+    rgba(100,80,200,0.3) 30%,
+    rgba(20,10,60,0.95) 100%
+  );
+  border:1px solid rgba(255,255,255,0.12);
+  box-shadow:
+    0 0 40px rgba(120,80,220,0.3),
+    inset 0 0 30px rgba(100,60,200,0.2);
+  margin:0 auto 24px;
+  animation:crystalPulse 4s ease-in-out infinite;
+  cursor:pointer;
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;
+}
+@keyframes crystalPulse{
+  0%,100%{box-shadow:0 0 40px rgba(120,80,220,0.3),inset 0 0 30px rgba(100,60,200,0.2);}
+  50%{box-shadow:0 0 70px rgba(120,80,220,0.5),inset 0 0 50px rgba(120,80,220,0.3);}
+}
+.oracle-question{
+  font-family:var(--font-serif);font-size:18px;font-weight:300;font-style:italic;
+  color:var(--text-mid);margin-bottom:24px;line-height:1.6;max-width:400px;
+}
+.oracle-result{
+  animation:fadeIn 1s ease;
+  max-width:560px;width:100%;
+}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
+.oracle-stone-display{
+  display:flex;align-items:center;justify-content:center;gap:20px;
+  margin-bottom:20px;flex-wrap:wrap;
+}
+.oracle-gem-big{
+  font-size:64px;
+  filter:drop-shadow(0 0 20px var(--stone-color,rgba(201,168,76,0.6)));
+  animation:gemFloat 3s ease-in-out infinite;
+}
+@keyframes gemFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.oracle-stone-name{
+  font-family:var(--font-title);font-size:22px;letter-spacing:0.15em;
+  color:var(--text-hi);margin-bottom:4px;
+}
+.oracle-stone-subtitle{font-size:13px;color:var(--gold);letter-spacing:0.1em;}
+.divination-text{
+  font-family:var(--font-serif);font-size:16px;font-weight:300;
+  line-height:1.9;color:var(--text-mid);
+  border-top:1px solid var(--edge);padding-top:16px;margin-top:16px;
+  font-style:italic;
+}
+.keyword-tags{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0;}
+.keyword-tag{
+  padding:3px 12px;border-radius:999px;font-size:11px;
+  font-family:var(--font-title);letter-spacing:0.1em;
+  border:1px solid var(--gold-dim);color:var(--gold);
+  background:rgba(201,168,76,0.06);
+}
+
+/* ── 詳細パネル ── */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.detail-item{padding:10px 14px;background:var(--glass);border:1px solid var(--edge);border-radius:4px;}
+.detail-label{font-size:10px;font-family:var(--font-title);letter-spacing:0.15em;color:var(--gold-dim);margin-bottom:3px;}
+.detail-val{font-size:14px;color:var(--text-hi);}
+
+/* ── 類似石リスト ── */
+.similar-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:12px;}
+.similar-card{
+  padding:10px;text-align:center;border-radius:6px;
+  border:1px solid var(--edge);background:var(--glass);
+  cursor:pointer;transition:all 0.2s;
+}
+.similar-card:hover{border-color:var(--gold-dim);transform:scale(1.04);}
+.similar-pct{font-size:11px;font-family:var(--font-mono);color:var(--gold);margin-top:4px;}
+
+/* ── ボタン ── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 24px;border-radius:4px;
+  font-family:var(--font-title);font-size:11px;letter-spacing:0.2em;
+  text-transform:uppercase;cursor:pointer;transition:all 0.2s;
+  border:1px solid var(--edge);background:var(--glass);color:var(--text-hi);
+}
+.btn:hover{background:rgba(255,255,255,0.08);}
+.btn-gold{
+  background:rgba(201,168,76,0.12);color:var(--gold);
+  border-color:var(--gold-dim);
+}
+.btn-gold:hover{background:rgba(201,168,76,0.22);}
+.btn-full{width:100%;justify-content:center;}
+
+/* ── チャクラバー ── */
+.chakra-bar{display:flex;gap:4px;margin:12px 0;}
+.chakra-dot{
+  flex:1;height:6px;border-radius:999px;opacity:0.25;
+  transition:opacity 0.3s,box-shadow 0.3s;
+}
+.chakra-dot.active{opacity:1;box-shadow:0 0 8px currentColor;}
+
+/* ── スコープ（占いカード展開） ── */
+.spread-area{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+  margin-top:20px;
+}
+.spread-card{
+  border:1px solid var(--edge);border-radius:8px;padding:16px;
+  text-align:center;background:var(--glass);
+  animation:cardReveal 0.5s ease both;
+}
+.spread-card:nth-child(2){animation-delay:0.15s;}
+.spread-card:nth-child(3){animation-delay:0.3s;}
+@keyframes cardReveal{
+  from{opacity:0;transform:rotateY(90deg) scale(0.8)}
+  to{opacity:1;transform:rotateY(0) scale(1)}
+}
+.spread-pos{font-size:10px;font-family:var(--font-title);letter-spacing:0.15em;color:var(--gold-dim);margin-bottom:8px;}
+.spread-gem{font-size:36px;margin:8px 0;}
+.spread-stone-name{font-family:var(--font-title);font-size:12px;letter-spacing:0.1em;color:var(--text-hi);}
+.spread-meaning{font-size:12px;color:var(--text-mid);margin-top:8px;line-height:1.6;font-style:italic;}
+
+/* ── プログレス ── */
+.pbar{height:3px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;margin:6px 0;}
+.pbar-fill{height:100%;border-radius:999px;transition:width 0.8s ease;}
+
+/* ── tooltip ── */
+.tooltip{
+  position:fixed;pointer-events:none;
+  background:rgba(7,4,26,0.95);border:1px solid var(--gold-dim);
+  border-radius:6px;padding:8px 12px;
+  font-family:var(--font-title);font-size:11px;color:var(--text-hi);
+  letter-spacing:0.08em;white-space:nowrap;
+  z-index:1000;transform:translate(-50%,-110%);
+  transition:opacity 0.15s;opacity:0;
+}
+.tooltip.visible{opacity:1;}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div class="tooltip" id="tooltip"></div>
+
+<div class="app">
+  <header>
+    <div class="header-sigil">✦ Crystal Oracle System ✦</div>
+    <h1>鉱石の<em>叡智</em>と占術</h1>
+    <p class="header-sub">Mineral Clustering · Similarity Oracle · Power Stone Divination</p>
+    <nav>
+      <button class="nav-btn active" onclick="switchPanel('catalog',this)">石図鑑</button>
+      <button class="nav-btn" onclick="switchPanel('map',this)">類似度マップ</button>
+      <button class="nav-btn" onclick="switchPanel('oracle',this)">Crystal Oracle</button>
+      <button class="nav-btn" onclick="switchPanel('detail',this)">石詳細</button>
+    </nav>
+  </header>
+
+  <!-- ═══ 石図鑑 ═══ -->
+  <div id="panel-catalog" class="panel active">
+    <div class="sec-title">鉱石カタログ — Kaggle Minerals Dataset</div>
+    <div class="filter-bar" id="filter-bar"></div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;">
+      <input id="search-box" placeholder="石の名前を検索..." style="
+        flex:1;background:var(--glass);border:1px solid var(--edge);border-radius:4px;
+        padding:8px 14px;color:var(--text-hi);font-family:var(--font-serif);font-size:14px;
+        outline:none;
+      ">
+      <button class="btn btn-gold" onclick="runClustering()">✦ クラスタリング実行</button>
+    </div>
+    <div class="stone-grid" id="stone-grid"></div>
+  </div>
+
+  <!-- ═══ 類似度マップ ═══ -->
+  <div id="panel-map" class="panel">
+    <div class="sec-title">t-SNE 類似度マップ — 特徴空間の可視化</div>
+    <div class="map-controls">
+      <button class="btn btn-gold" onclick="generateMap()">✦ マップ再生成</button>
+      <button class="btn" onclick="animateMap()">▶ アニメーション</button>
+      <span style="font-size:12px;color:var(--text-lo);font-family:var(--font-mono);">
+        クラスター数: <span id="cluster-count">7</span>
+      </span>
+    </div>
+    <canvas id="map-canvas" height="480"></canvas>
+    <div class="map-legend" id="map-legend"></div>
+    <div class="card" style="margin-top:16px;">
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.8;font-family:var(--font-mono)">
+        <span style="color:var(--gold)">アルゴリズム:</span> t-SNE（次元削減）→ k-means クラスタリング<br>
+        <span style="color:var(--gold)">特徴量:</span> 硬度, 比重, 光沢, 劈開, 結晶系, カラーファミリー, チャクラ, エレメント<br>
+        <span style="color:var(--gold)">距離計算:</span> ユークリッド距離（正規化済み）
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Oracle ═══ -->
+  <div id="panel-oracle" class="panel">
+    <div class="sec-title">Crystal Oracle — パワーストーン占術</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="card">
+        <div style="font-family:var(--font-title);font-size:11px;letter-spacing:0.2em;color:var(--gold-dim);margin-bottom:14px;">占いを選択</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="btn btn-gold btn-full" onclick="runOracle('single')">◈ 一石占い</button>
+          <button class="btn btn-full" onclick="runOracle('three')">◈◈◈ 三石展開</button>
+          <button class="btn btn-full" onclick="runOracle('chakra')">☯ チャクラ診断</button>
+          <button class="btn btn-full" onclick="runOracle('compatibility')">♾ 相性占い</button>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="font-size:12px;color:var(--text-lo);margin-bottom:8px;font-family:var(--font-title);letter-spacing:0.1em;">あなたの今日のテーマ</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="theme-select">
+            <button class="filter-btn" onclick="selectTheme(this,'love')">❤ 恋愛・関係</button>
+            <button class="filter-btn" onclick="selectTheme(this,'work')">⚡ 仕事・創造</button>
+            <button class="filter-btn" onclick="selectTheme(this,'health')">✿ 健康・癒し</button>
+            <button class="filter-btn" onclick="selectTheme(this,'spirit')">★ 霊性・直感</button>
+            <button class="filter-btn" onclick="selectTheme(this,'protect')">◆ 守護・浄化</button>
+            <button class="filter-btn active" onclick="selectTheme(this,'all')">∞ すべて</button>
+          </div>
+        </div>
+      </div>
+      <div class="card oracle-stage" id="oracle-stage">
+        <div class="crystal-ball" id="crystal-ball" onclick="shakeCrystalBall()">✦</div>
+        <p class="oracle-question">水晶玉に触れ、あなたの石を召喚せよ</p>
+      </div>
+    </div>
+    <div id="oracle-extended" style="margin-top:16px;display:none;"></div>
+  </div>
+
+  <!-- ═══ 詳細 ═══ -->
+  <div id="panel-detail" class="panel">
+    <div class="sec-title">石の詳細 — Mineral Profile</div>
+    <div id="detail-content">
+      <div style="text-align:center;padding:60px 0;color:var(--text-lo);">
+        <div style="font-size:48px;margin-bottom:16px">◈</div>
+        <div style="font-family:var(--font-title);letter-spacing:0.2em;font-size:13px;">石図鑑から石を選択してください</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA — Kaggle Minerals + パワーストーン属性
+// ══════════════════════════════════════════════════════════════
+const STONES = [
+  // name, emoji, group, hardness, sg(比重), luster, cleavage, crystal, colorFam, chakra, element, keywords, divination
+  {id:0,  name:"Diamond",     ja:"ダイヤモンド",  emoji:"💎", group:"Native",    hard:10,  sg:3.52, luster:"adamantine", cleavage:4, crystal:"cubic",      color:"clear",  chakra:"crown",    elem:"fire",  keywords:["永遠","純粋","力"],   div:"あなたの前に道が開かれる。迷わず進め。"},
+  {id:1,  name:"Ruby",        ja:"ルビー",        emoji:"🔴", group:"Corundum",  hard:9,   sg:4.00, luster:"vitreous",   cleavage:0, crystal:"trigonal",   color:"red",    chakra:"root",     elem:"fire",  keywords:["情熱","勇気","生命力"],div:"燃える情熱が新たな扉を開く。"},
+  {id:2,  name:"Sapphire",    ja:"サファイア",    emoji:"🔵", group:"Corundum",  hard:9,   sg:4.00, luster:"vitreous",   cleavage:0, crystal:"trigonal",   color:"blue",   chakra:"throat",   elem:"water", keywords:["知恵","誠実","平和"], div:"深い洞察が答えを示している。"},
+  {id:3,  name:"Emerald",     ja:"エメラルド",    emoji:"💚", group:"Beryl",     hard:7.5, sg:2.72, luster:"vitreous",   cleavage:1, crystal:"hexagonal",  color:"green",  chakra:"heart",    elem:"earth", keywords:["愛","成長","再生"],   div:"心を開けば豊かさが流れ込む。"},
+  {id:4,  name:"Amethyst",    ja:"アメジスト",    emoji:"💜", group:"Quartz",    hard:7,   sg:2.65, luster:"vitreous",   cleavage:0, crystal:"trigonal",   color:"purple", chakra:"third_eye",elem:"air",   keywords:["直感","保護","変容"], div:"見えないものを見る力が高まっている。"},
+  {id:5,  name:"Citrine",     ja:"シトリン",      emoji:"🟡", group:"Quartz",    hard:7,   sg:2.65, luster:"vitreous",   cleavage:0, crystal:"trigonal",   color:"yellow", chakra:"solar",    elem:"fire",  keywords:["豊穣","自信","喜び"], div:"黄金の光があなたの才能を照らす。"},
+  {id:6,  name:"Aquamarine",  ja:"アクアマリン",  emoji:"🩵", group:"Beryl",     hard:7.5, sg:2.72, luster:"vitreous",   cleavage:1, crystal:"hexagonal",  color:"blue",   chakra:"throat",   elem:"water", keywords:["癒し","勇気","冷静"], div:"波のように穏やかに流れよ。"},
+  {id:7,  name:"Topaz",       ja:"トパーズ",      emoji:"🔶", group:"Silicate",  hard:8,   sg:3.55, luster:"vitreous",   cleavage:1, crystal:"orthorhombic",color:"yellow", chakra:"solar",    elem:"fire",  keywords:["明晰","成功","意志"], div:"意図を明確にすれば現実が従う。"},
+  {id:8,  name:"Opal",        ja:"オパール",      emoji:"🫧", group:"Mineraloid",hard:6,   sg:2.10, luster:"waxy",       cleavage:0, crystal:"amorphous",  color:"multi",  chakra:"crown",    elem:"water", keywords:["創造","夢","変化"],   div:"七色の可能性があなたを待っている。"},
+  {id:9,  name:"Tourmaline",  ja:"トルマリン",    emoji:"🟢", group:"Silicate",  hard:7.5, sg:3.10, luster:"vitreous",   cleavage:0, crystal:"trigonal",   color:"multi",  chakra:"heart",    elem:"earth", keywords:["保護","浄化","調和"], div:"内なる均衡が外の世界を整える。"},
+  {id:10, name:"Lapis Lazuli",ja:"ラピスラズリ",  emoji:"🔷", group:"Aggregate", hard:5.5, sg:2.80, luster:"dull",       cleavage:0, crystal:"cubic",      color:"blue",   chakra:"third_eye",elem:"water", keywords:["真実","知恵","王者"], div:"古の叡智があなたに語りかける。"},
+  {id:11, name:"Malachite",   ja:"マラカイト",    emoji:"🟩", group:"Carbonate", hard:3.5, sg:4.00, luster:"vitreous",   cleavage:1, crystal:"monoclinic", color:"green",  chakra:"heart",    elem:"earth", keywords:["変容","保護","癒し"], div:"緑の渦が古い傷を溶かしていく。"},
+  {id:12, name:"Obsidian",    ja:"黒曜石",        emoji:"⚫", group:"Volcanic",  hard:5.5, sg:2.40, luster:"vitreous",   cleavage:0, crystal:"amorphous",  color:"black",  chakra:"root",     elem:"earth", keywords:["真実","浄化","守護"], div:"影を直視する者だけが光を得る。"},
+  {id:13, name:"Rose Quartz", ja:"ローズクォーツ",emoji:"🌸", group:"Quartz",    hard:7,   sg:2.65, luster:"vitreous",   cleavage:0, crystal:"trigonal",   color:"pink",   chakra:"heart",    elem:"water", keywords:["愛","自愛","調和"],   div:"自分を愛することから全ては始まる。"},
+  {id:14, name:"Moonstone",   ja:"ムーンストーン",emoji:"🌙", group:"Feldspar",  hard:6,   sg:2.57, luster:"pearly",     cleavage:2, crystal:"monoclinic", color:"clear",  chakra:"crown",    elem:"water", keywords:["直感","女性性","旅"],  div:"月の満ち欠けのように自然に委ねよ。"},
+  {id:15, name:"Carnelian",   ja:"カーネリアン",  emoji:"🟠", group:"Chalcedony",hard:7,   sg:2.61, luster:"vitreous",   cleavage:0, crystal:"trigonal",   color:"orange", chakra:"sacral",   elem:"fire",  keywords:["活力","創造","情熱"], div:"創造の炎が今もっとも輝いている。"},
+  {id:16, name:"Labradorite", ja:"ラブラドライト",emoji:"🌈", group:"Feldspar",  hard:6,   sg:2.70, luster:"vitreous",   cleavage:2, crystal:"triclinic",  color:"multi",  chakra:"third_eye",elem:"air",   keywords:["変容","魔法","保護"], div:"光の角度によって全てが変わる。"},
+  {id:17, name:"Garnet",      ja:"ガーネット",    emoji:"❤️", group:"Silicate",  hard:7.5, sg:3.90, luster:"vitreous",   cleavage:0, crystal:"cubic",      color:"red",    chakra:"root",     elem:"fire",  keywords:["愛情","情熱","再生"], div:"深紅の炎が絆を強める。"},
+  {id:18, name:"Peridot",     ja:"ペリドット",    emoji:"💛", group:"Olivine",   hard:7,   sg:3.30, luster:"vitreous",   cleavage:1, crystal:"orthorhombic",color:"green",  chakra:"heart",    elem:"earth", keywords:["成長","変化","保護"], div:"嫉妬を手放し、本物の喜びへ。"},
+  {id:19, name:"Tanzanite",   ja:"タンザナイト",  emoji:"🟣", group:"Zoisite",   hard:6.5, sg:3.35, luster:"vitreous",   cleavage:1, crystal:"orthorhombic",color:"purple", chakra:"crown",    elem:"air",   keywords:["変容","霊性","洞察"], div:"次元を超えた答えが降りてくる。"},
+  {id:20, name:"Alexandrite", ja:"アレキサンドライト",emoji:"🔮",group:"Chrysoberyl",hard:8.5,sg:3.73,luster:"vitreous",cleavage:1, crystal:"orthorhombic",color:"multi",  chakra:"crown",    elem:"fire",  keywords:["幸運","変化","幸福"], div:"状況は変わる。その変化があなたの幸運だ。"},
+  {id:21, name:"Fluorite",    ja:"フローライト",  emoji:"🟪", group:"Halide",    hard:4,   sg:3.18, luster:"vitreous",   cleavage:4, crystal:"cubic",      color:"purple", chakra:"third_eye",elem:"air",   keywords:["集中","浄化","明晰"], div:"混乱の霧が晴れ、本質が見える。"},
+  {id:22, name:"Celestite",   ja:"セレスタイト",  emoji:"☁️", group:"Sulfate",   hard:3.5, sg:3.97, luster:"vitreous",   cleavage:3, crystal:"orthorhombic",color:"blue",   chakra:"crown",    elem:"air",   keywords:["天使","平和","宇宙"], div:"天からのメッセージを受け取る時。"},
+  {id:23, name:"Amazonite",   ja:"アマゾナイト",  emoji:"🩵", group:"Feldspar",  hard:6,   sg:2.56, luster:"vitreous",   cleavage:2, crystal:"triclinic",  color:"green",  chakra:"heart",    elem:"water", keywords:["真実","調和","勇気"], div:"本当の言葉が力を持つ。"},
+  {id:24, name:"Kyanite",     ja:"カイヤナイト",  emoji:"💙", group:"Silicate",  hard:5.5, sg:3.60, luster:"vitreous",   cleavage:1, crystal:"triclinic",  color:"blue",   chakra:"throat",   elem:"air",   keywords:["整合","通信","平和"], div:"魂とマインドが一致する瞬間が近い。"},
+  {id:25, name:"Selenite",    ja:"セレナイト",    emoji:"🤍", group:"Sulfate",   hard:2,   sg:2.32, luster:"pearly",     cleavage:3, crystal:"monoclinic", color:"clear",  chakra:"crown",    elem:"water", keywords:["浄化","月","透明"],   div:"すべての曇りが清められる。"},
+  {id:26, name:"Rhodonite",   ja:"ロードナイト",  emoji:"🩷", group:"Pyroxene",  hard:5.5, sg:3.60, luster:"vitreous",   cleavage:2, crystal:"triclinic",  color:"pink",   chakra:"heart",    elem:"earth", keywords:["許容","癒し","調和"], div:"傷ついた心が愛で満たされていく。"},
+  {id:27, name:"Sunstone",    ja:"サンストーン",  emoji:"☀️", group:"Feldspar",  hard:6,   sg:2.65, luster:"vitreous",   cleavage:2, crystal:"triclinic",  color:"orange", chakra:"solar",    elem:"fire",  keywords:["喜び","活力","リーダー"],div:"あなたの光が周囲を照らす番だ。"},
+  {id:28, name:"Pyrite",      ja:"パイライト",    emoji:"🌟", group:"Sulfide",   hard:6,   sg:5.00, luster:"metallic",   cleavage:0, crystal:"cubic",      color:"yellow", chakra:"solar",    elem:"fire",  keywords:["豊かさ","意志","保護"], div:"黄金の盾があなたの富を守る。"},
+  {id:29, name:"Hematite",    ja:"ヘマタイト",    emoji:"⚙️", group:"Oxide",     hard:5.5, sg:5.26, luster:"metallic",   cleavage:0, crystal:"trigonal",   color:"black",  chakra:"root",     elem:"earth", keywords:["グラウンディング","集中","保護"],div:"大地に根を張り、揺るぎない力を得よ。"},
+  {id:30, name:"Tiger Eye",   ja:"タイガーアイ",  emoji:"🟤", group:"Quartz",    hard:7,   sg:2.65, luster:"silky",      cleavage:0, crystal:"trigonal",   color:"brown",  chakra:"solar",    elem:"fire",  keywords:["洞察","勇気","意志"], div:"虎の目で全局面を見渡せ。"},
+  {id:31, name:"Larimar",     ja:"ラリマール",    emoji:"🌊", group:"Pyroxene",  hard:4.5, sg:2.84, luster:"vitreous",   cleavage:2, crystal:"triclinic",  color:"blue",   chakra:"throat",   elem:"water", keywords:["平和","真実","海"],   div:"海のように広い視野を持て。"},
+  {id:32, name:"Moldavite",   ja:"モルダバイト",  emoji:"☄️", group:"Tektite",   hard:5.5, sg:2.35, luster:"vitreous",   cleavage:0, crystal:"amorphous",  color:"green",  chakra:"heart",    elem:"fire",  keywords:["変容","宇宙","覚醒"], div:"宇宙の意志があなたを変容させる。"},
+  {id:33, name:"Amber",       ja:"アンバー",      emoji:"🍯", group:"Organic",   hard:2.5, sg:1.08, luster:"resinous",   cleavage:0, crystal:"amorphous",  color:"orange", chakra:"solar",    elem:"fire",  keywords:["古代","記憶","保護"], div:"過去の知恵が現在を輝かせる。"},
+  {id:34, name:"Pearl",       ja:"パール",        emoji:"🤍", group:"Organic",   hard:3,   sg:2.71, luster:"pearly",     cleavage:0, crystal:"orthorhombic",color:"clear",  chakra:"crown",    elem:"water", keywords:["純粋","女性性","月"], div:"痛みから生まれた美しさを誇れ。"},
+  {id:35, name:"Jade",        ja:"翡翠",          emoji:"💚", group:"Pyroxene",  hard:7,   sg:3.30, luster:"waxy",       cleavage:2, crystal:"monoclinic", color:"green",  chakra:"heart",    elem:"earth", keywords:["長寿","知恵","守護"], div:"東洋の叡智があなたを導く。"},
+  {id:36, name:"Spinel",      ja:"スピネル",      emoji:"🔴", group:"Oxide",     hard:8,   sg:3.60, luster:"vitreous",   cleavage:0, crystal:"cubic",      color:"red",    chakra:"root",     elem:"fire",  keywords:["活性","再生","情熱"], div:"混同されてきた真価が今こそ輝く。"},
+  {id:37, name:"Kunzite",     ja:"クンツァイト",  emoji:"💗", group:"Pyroxene",  hard:6.5, sg:3.18, luster:"vitreous",   cleavage:2, crystal:"monoclinic", color:"pink",   chakra:"heart",    elem:"water", keywords:["愛","癒し","開放"],   div:"心の扉を静かに開けてみよ。"},
+  {id:38, name:"Iolite",      ja:"アイオライト",  emoji:"🔵", group:"Cordierite",hard:7,   sg:2.61, luster:"vitreous",   cleavage:1, crystal:"orthorhombic",color:"purple", chakra:"third_eye",elem:"air",   keywords:["方向","直感","旅"],   div:"星の道があなたの正しい方向を示す。"},
+  {id:39, name:"Zircon",      ja:"ジルコン",      emoji:"⚡", group:"Silicate",  hard:7.5, sg:4.69, luster:"adamantine", cleavage:1, crystal:"tetragonal", color:"clear",  chakra:"crown",    elem:"fire",  keywords:["純化","成功","繁栄"], div:"本物の輝きは模倣できない。"},
+];
+
+const GROUPS = ["All", ...new Set(STONES.map(s=>s.group))];
+const CHAKRAS = {
+  root:"#e53935",sacral:"#f4511e",solar:"#f9a825",heart:"#43a047",
+  throat:"#1e88e5",third_eye:"#5e35b1",crown:"#8e24aa"
+};
+const COLORS_MAP = {
+  clear:"rgba(220,230,240,0.8)",red:"#e53935",blue:"#1e88e5",green:"#43a047",
+  purple:"#7b1fa2",yellow:"#f9a825",orange:"#f4511e",pink:"#e91e8c",
+  black:"#455a64",brown:"#795548",multi:"#9c27b0"
+};
+const CLUSTER_COLORS = [
+  "#c9a84c","#e53935","#1e88e5","#43a047","#7b1fa2","#f4511e","#00acc1"
+];
+
+let selectedTheme = 'all';
+let clusterAssignments = [];
+let mapNodes = [];
+let animFrame = null;
+let selectedStone = null;
+
+// ══════════════════════════════════════════════════════════════
+// 星空
+// ══════════════════════════════════════════════════════════════
+(function initStars(){
+  const c = document.getElementById('starfield');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize(){
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    stars = Array.from({length:160},()=>({
+      x:Math.random()*c.width, y:Math.random()*c.height,
+      r:Math.random()*1.5+0.2,
+      a:Math.random(), da:0.003+Math.random()*0.005,
+      speed:Math.random()*0.08+0.02
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      s.a += s.da; if(s.a>1||s.a<0) s.da*=-1;
+      s.y += s.speed; if(s.y>c.height) s.y=0;
+      ctx.globalAlpha = s.a*0.7;
+      ctx.fillStyle='#c8d8f0';
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha=1;
+    requestAnimationFrame(draw);
+  }
+  resize(); window.addEventListener('resize',resize); draw();
+})();
+
+// ══════════════════════════════════════════════════════════════
+// タブ切替
+// ══════════════════════════════════════════════════════════════
+function switchPanel(id, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='map') setTimeout(generateMap,100);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 石図鑑
+// ══════════════════════════════════════════════════════════════
+function buildCatalog(filter='All', query=''){
+  const grid = document.getElementById('stone-grid');
+  grid.innerHTML = '';
+  const filtered = STONES.filter(s=>{
+    const groupOk = filter==='All' || s.group===filter;
+    const searchOk = !query || s.ja.includes(query)||s.name.toLowerCase().includes(query.toLowerCase());
+    return groupOk && searchOk;
+  });
+  filtered.forEach(s=>{
+    const div = document.createElement('div');
+    div.className='stone-item';
+    div.style.setProperty('--stone-color', COLORS_MAP[s.color]||'rgba(201,168,76,0.3)');
+    div.innerHTML=`<span class="stone-gem">${s.emoji}</span>
+      <div class="stone-name">${s.ja}</div>
+      <div class="stone-group">${s.group}</div>`;
+    div.onclick=()=>showDetail(s);
+    grid.appendChild(div);
+  });
+}
+
+function buildFilters(){
+  const bar = document.getElementById('filter-bar');
+  GROUPS.forEach(g=>{
+    const b = document.createElement('button');
+    b.className='filter-btn'+(g==='All'?' active':'');
+    b.textContent=g;
+    b.onclick=()=>{
+      document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      buildCatalog(g, document.getElementById('search-box').value);
+    };
+    bar.appendChild(b);
+  });
+}
+
+document.getElementById('search-box').addEventListener('input',e=>{
+  const active = document.querySelector('#filter-bar .filter-btn.active');
+  buildCatalog(active?active.textContent:'All', e.target.value);
+});
+
+// ══════════════════════════════════════════════════════════════
+// クラスタリング（k-means 簡易実装）
+// ══════════════════════════════════════════════════════════════
+function featureVector(s){
+  const colorIdx = Object.keys(COLORS_MAP).indexOf(s.color)/10;
+  const chakraIdx = Object.keys(CHAKRAS).indexOf(s.chakra)/7;
+  const elemIdx = ["fire","water","earth","air"].indexOf(s.elem)/4;
+  const lusterIdx = ["adamantine","metallic","vitreous","waxy","pearly","silky","resinous","dull"].indexOf(s.luster)/8;
+  const crystalIdx = ["cubic","trigonal","hexagonal","orthorhombic","monoclinic","triclinic","tetragonal","amorphous"].indexOf(s.crystal)/8;
+  return [
+    s.hard/10, Math.min(s.sg/6,1), lusterIdx, s.cleavage/4,
+    crystalIdx, colorIdx, chakraIdx, elemIdx
+  ];
+}
+
+function kmeans(data, k=7, iters=60){
+  let centroids = data.slice(0,k).map(v=>[...v]);
+  let labels = new Array(data.length).fill(0);
+  for(let it=0;it<iters;it++){
+    // assign
+    data.forEach((v,i)=>{
+      let best=0, bestD=Infinity;
+      centroids.forEach((c,j)=>{
+        const d=v.reduce((s,x,k)=>s+(x-c[k])**2,0);
+        if(d<bestD){bestD=d;best=j;}
+      });
+      labels[i]=best;
+    });
+    // update
+    const sums=Array.from({length:k},()=>new Array(data[0].length).fill(0));
+    const counts=new Array(k).fill(0);
+    data.forEach((v,i)=>{
+      v.forEach((x,d)=>sums[labels[i]][d]+=x);
+      counts[labels[i]]++;
+    });
+    centroids=sums.map((s,j)=>counts[j]>0?s.map(x=>x/counts[j]):centroids[j]);
+  }
+  return labels;
+}
+
+function runClustering(){
+  const vecs = STONES.map(featureVector);
+  clusterAssignments = kmeans(vecs, 7);
+  // グリッドにクラスター色を反映
+  const items = document.querySelectorAll('.stone-item');
+  items.forEach((el,i)=>{
+    if(i<STONES.length){
+      const cidx = clusterAssignments[i]%CLUSTER_COLORS.length;
+      el.style.borderColor=CLUSTER_COLORS[cidx]+'80';
+    }
+  });
+  generateMap();
+  alert('✦ クラスタリング完了！マップタブで類似度を確認できます。');
+}
+
+// ══════════════════════════════════════════════════════════════
+// t-SNE 風 2D 配置（バーンズハット近似の超簡易版）
+// ══════════════════════════════════════════════════════════════
+function tsneLayout(vecs, epochs=200){
+  const n = vecs.length;
+  const dim = vecs[0].length;
+  // 距離行列
+  const dist = Array.from({length:n},(_,i)=>
+    Array.from({length:n},(_,j)=>{
+      if(i===j)return 0;
+      return Math.sqrt(vecs[i].reduce((s,x,d)=>s+(x-vecs[j][d])**2,0));
+    })
+  );
+  // 初期座標（ランダム）
+  let Y = Array.from({length:n},()=>[Math.random()*2-1,Math.random()*2-1]);
+  // 引力＋斥力の簡易最適化
+  for(let e=0;e<epochs;e++){
+    const lr = 0.05*(1-e/epochs)+0.005;
+    const grads = Array.from({length:n},()=>[0,0]);
+    for(let i=0;i<n;i++){
+      for(let j=0;j<n;j++){
+        if(i===j)continue;
+        const dx=Y[i][0]-Y[j][0], dy=Y[i][1]-Y[j][1];
+        const d=Math.sqrt(dx*dx+dy*dy)+1e-5;
+        const target=1-dist[i][j]; // 近いほど引き付ける
+        const f=(d-target*0.8)*lr;
+        grads[i][0]+=dx/d*f;
+        grads[i][1]+=dy/d*f;
+      }
+    }
+    Y=Y.map((y,i)=>[y[0]-grads[i][0],y[1]-grads[i][1]]);
+  }
+  // 正規化
+  const xs=Y.map(y=>y[0]),ys=Y.map(y=>y[1]);
+  const minX=Math.min(...xs),maxX=Math.max(...xs);
+  const minY=Math.min(...ys),maxY=Math.max(...ys);
+  return Y.map(y=>[
+    (y[0]-minX)/(maxX-minX+1e-5),
+    (y[1]-minY)/(maxY-minY+1e-5)
+  ]);
+}
+
+function generateMap(){
+  if(clusterAssignments.length===0){
+    const vecs=STONES.map(featureVector);
+    clusterAssignments=kmeans(vecs,7);
+  }
+  const vecs=STONES.map(featureVector);
+  const layout=tsneLayout(vecs,180);
+  const canvas=document.getElementById('map-canvas');
+  const W=canvas.parentElement.offsetWidth||700;
+  canvas.width=W;
+  const H=480;
+  const ctx=canvas.getContext('2d');
+
+  mapNodes=STONES.map((s,i)=>({
+    s,
+    x:layout[i][0]*(W-80)+40,
+    y:layout[i][1]*(H-80)+40,
+    cluster:clusterAssignments[i],
+    vx:0,vy:0
+  }));
+
+  drawMap(ctx,W,H);
+  buildMapLegend();
+  document.getElementById('cluster-count').textContent=7;
+
+  // ツールチップ
+  canvas.onmousemove=e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(W/rect.width);
+    const my=(e.clientY-rect.top)*(H/rect.height);
+    let found=null;
+    mapNodes.forEach(n=>{
+      const d=Math.sqrt((n.x-mx)**2+(n.y-my)**2);
+      if(d<18)found=n;
+    });
+    const tip=document.getElementById('tooltip');
+    if(found){
+      tip.textContent=`${found.s.emoji} ${found.s.ja}  硬度${found.s.hard}  ${found.s.keywords.join('・')}`;
+      tip.style.left=e.clientX+'px';
+      tip.style.top=e.clientY+'px';
+      tip.classList.add('visible');
+      canvas.style.cursor='pointer';
+    } else {
+      tip.classList.remove('visible');
+      canvas.style.cursor='crosshair';
+    }
+  };
+  canvas.onclick=e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(W/rect.width);
+    const my=(e.clientY-rect.top)*(H/rect.height);
+    mapNodes.forEach(n=>{
+      if(Math.sqrt((n.x-mx)**2+(n.y-my)**2)<18) showDetail(n.s);
+    });
+  };
+}
+
+function drawMap(ctx,W,H){
+  ctx.clearRect(0,0,W,H);
+  // 背景グリッド
+  ctx.strokeStyle='rgba(255,255,255,0.03)';
+  ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // クラスター間の接続線（同クラスター同士）
+  mapNodes.forEach((a,i)=>mapNodes.forEach((b,j)=>{
+    if(j<=i)return;
+    if(a.cluster!==b.cluster)return;
+    const d=Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
+    if(d>120)return;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle=CLUSTER_COLORS[a.cluster]+'20';
+    ctx.lineWidth=1;ctx.stroke();
+  }));
+
+  // ノード
+  mapNodes.forEach(n=>{
+    const col=CLUSTER_COLORS[n.cluster];
+    // グロー
+    const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,18);
+    g.addColorStop(0,col+'60');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(n.x,n.y,18,0,Math.PI*2);ctx.fill();
+    // 円
+    ctx.beginPath();ctx.arc(n.x,n.y,8,0,Math.PI*2);
+    ctx.fillStyle=col+'cc';ctx.fill();
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+    // 絵文字
+    ctx.font='13px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(n.s.emoji,n.x,n.y);
+    // 名前（小）
+    ctx.font='9px Cinzel,serif';ctx.fillStyle='rgba(240,234,255,0.7)';
+    ctx.fillText(n.s.ja,n.x,n.y+18);
+  });
+}
+
+function animateMap(){
+  if(animFrame){cancelAnimationFrame(animFrame);animFrame=null;return;}
+  const canvas=document.getElementById('map-canvas');
+  const W=canvas.width,H=480;
+  const ctx=canvas.getContext('2d');
+  let t=0;
+  function frame(){
+    mapNodes.forEach(n=>{
+      n.x+=Math.sin(t*0.02+n.s.id*0.5)*0.3;
+      n.y+=Math.cos(t*0.015+n.s.id*0.7)*0.3;
+      n.x=Math.max(30,Math.min(W-30,n.x));
+      n.y=Math.max(30,Math.min(H-30,n.y));
+    });
+    drawMap(ctx,W,H);
+    t++;
+    animFrame=requestAnimationFrame(frame);
+  }
+  animFrame=requestAnimationFrame(frame);
+}
+
+function buildMapLegend(){
+  const leg=document.getElementById('map-legend');
+  leg.innerHTML='';
+  const groupNames=["希少宝石","赤系鉱石","青系鉱石","緑系鉱石","紫系変容石","多色光彩石","大地の石"];
+  CLUSTER_COLORS.forEach((c,i)=>{
+    const div=document.createElement('div');
+    div.className='legend-item';
+    div.innerHTML=`<div class="legend-dot" style="background:${c}"></div>${groupNames[i]}`;
+    leg.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 類似度計算
+// ══════════════════════════════════════════════════════════════
+function getSimilarity(a,b){
+  const va=featureVector(a),vb=featureVector(b);
+  const d=Math.sqrt(va.reduce((s,x,i)=>s+(x-vb[i])**2,0));
+  return Math.max(0,1-d/2);
+}
+
+function getTopSimilar(stone,n=6){
+  return STONES
+    .filter(s=>s.id!==stone.id)
+    .map(s=>({stone:s,sim:getSimilarity(stone,s)}))
+    .sort((a,b)=>b.sim-a.sim)
+    .slice(0,n);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 詳細表示
+// ══════════════════════════════════════════════════════════════
+function showDetail(stone){
+  selectedStone=stone;
+  switchPanel('detail',document.querySelectorAll('.nav-btn')[3]);
+  const similar=getTopSimilar(stone,6);
+  const col=COLORS_MAP[stone.color]||'rgba(201,168,76,0.5)';
+  const chakraCol=CHAKRAS[stone.chakra]||'#888';
+
+  document.getElementById('detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;flex-wrap:wrap">
+      <div style="font-size:72px;filter:drop-shadow(0 0 24px ${col})">${stone.emoji}</div>
+      <div>
+        <div style="font-family:var(--font-title);font-size:28px;letter-spacing:0.1em;color:var(--text-hi)">${stone.ja}</div>
+        <div style="font-size:14px;color:var(--gold);letter-spacing:0.15em;margin-top:4px">${stone.name}</div>
+        <div style="font-size:12px;color:var(--text-lo);margin-top:4px">${stone.group}</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          ${stone.keywords.map(k=>`<span class="keyword-tag">${k}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="chakra-bar">
+      ${Object.entries(CHAKRAS).map(([k,c])=>`
+        <div class="chakra-dot ${stone.chakra===k?'active':''}" style="background:${c};color:${c}"
+          title="${k}"></div>
+      `).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--text-lo);margin-bottom:16px;font-family:var(--font-title);letter-spacing:0.1em">
+      チャクラ: <span style="color:${chakraCol}">${stone.chakra.toUpperCase()}</span>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item"><div class="detail-label">硬度 (Mohs)</div><div class="detail-val">${stone.hard}</div>
+        <div class="pbar"><div class="pbar-fill" style="width:${stone.hard/10*100}%;background:${col}"></div></div>
+      </div>
+      <div class="detail-item"><div class="detail-label">比重</div><div class="detail-val">${stone.sg}</div>
+        <div class="pbar"><div class="pbar-fill" style="width:${Math.min(stone.sg/6,1)*100}%;background:var(--gold)"></div></div>
+      </div>
+      <div class="detail-item"><div class="detail-label">光沢</div><div class="detail-val">${stone.luster}</div></div>
+      <div class="detail-item"><div class="detail-label">結晶系</div><div class="detail-val">${stone.crystal}</div></div>
+      <div class="detail-item"><div class="detail-label">劈開</div><div class="detail-val">${stone.cleavage > 0 ? stone.cleavage + ' 方向' : 'なし'}</div></div>
+      <div class="detail-item"><div class="detail-label">エレメント</div><div class="detail-val">${stone.elem}</div></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;border-color:rgba(201,168,76,0.2)">
+      <div style="font-size:13px;color:var(--gold);font-family:var(--font-title);letter-spacing:0.1em;margin-bottom:8px">✦ 占術メッセージ</div>
+      <div style="font-size:16px;color:var(--text-mid);font-style:italic;line-height:1.8">${stone.div}</div>
+    </div>
+
+    <div class="sec-title">類似石 — Similarity Search</div>
+    <div class="similar-list">
+      ${similar.map(({stone:s,sim})=>`
+        <div class="similar-card" onclick="showDetail(STONES[${s.id}])">
+          <div style="font-size:28px">${s.emoji}</div>
+          <div style="font-size:11px;font-family:var(--font-title);color:var(--text-hi);margin-top:4px">${s.ja}</div>
+          <div class="similar-pct">${Math.round(sim*100)}%</div>
+          <div class="pbar"><div class="pbar-fill" style="width:${sim*100}%;background:${CLUSTER_COLORS[clusterAssignments[s.id]||0]}"></div></div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// Oracle 占い
+// ══════════════════════════════════════════════════════════════
+function selectTheme(btn,theme){
+  document.querySelectorAll('#theme-select .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedTheme=theme;
+}
+
+const THEME_STONES = {
+  love:   [3,13,26,17,37,27],
+  work:   [0,5,7,28,30,20],
+  health: [9,11,25,6,23,18],
+  spirit: [4,10,19,22,14,32],
+  protect:[12,29,21,34,9,35],
+  all:    null
+};
+const SPREAD_POSITIONS=[
+  {pos:"過去の影響",desc:"あなたを形作ってきたもの"},
+  {pos:"現在の本質",desc:"今この瞬間の真実"},
+  {pos:"未来への扉",desc:"あなたを待つ可能性"}
+];
+
+function pickStones(n,theme='all'){
+  const pool = THEME_STONES[theme] ? THEME_STONES[theme].map(i=>STONES[i]) : STONES;
+  const shuffled=[...pool].sort(()=>Math.random()-0.5);
+  return shuffled.slice(0,n);
+}
+
+function shakeCrystalBall(){
+  const ball=document.getElementById('crystal-ball');
+  ball.style.animation='none';
+  ball.textContent='✨';
+  setTimeout(()=>{
+    ball.style.animation='crystalPulse 4s ease-in-out infinite';
+    ball.textContent='✦';
+  },500);
+}
+
+function runOracle(type){
+  const stage=document.getElementById('oracle-stage');
+  const ext=document.getElementById('oracle-extended');
+  ext.style.display='none';
+
+  // アニメーション
+  stage.innerHTML=`
+    <div class="crystal-ball" style="animation:crystalPulse 0.5s ease-in-out infinite">✨</div>
+    <p class="oracle-question" style="animation:fadeIn 0.5s ease">宇宙の叡智に問いかけている…</p>
+  `;
+
+  setTimeout(()=>{
+    if(type==='single') doSingleOracle();
+    else if(type==='three') doThreeCard();
+    else if(type==='chakra') doChakraReading();
+    else if(type==='compatibility') doCompatibility();
+  },1200);
+}
+
+function doSingleOracle(){
+  const stone=pickStones(1,selectedTheme)[0];
+  const col=COLORS_MAP[stone.color]||'rgba(201,168,76,0.5)';
+  const stage=document.getElementById('oracle-stage');
+  stage.innerHTML=`
+    <div class="oracle-result">
+      <div class="oracle-stone-display">
+        <div>
+          <div class="oracle-gem-big" style="--stone-color:${col}">${stone.emoji}</div>
+        </div>
+        <div>
+          <div class="oracle-stone-name">${stone.ja}</div>
+          <div class="oracle-stone-subtitle">${stone.name} · ${stone.group}</div>
+          <div class="keyword-tags">${stone.keywords.map(k=>`<span class="keyword-tag">${k}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="divination-text">${stone.div}</div>
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-gold" onclick="showDetail(STONES[${stone.id}])">石の詳細を見る</button>
+        <button class="btn" onclick="runOracle('single')">もう一度引く</button>
+      </div>
+    </div>
+  `;
+}
+
+function doThreeCard(){
+  const stones=pickStones(3,selectedTheme);
+  const stage=document.getElementById('oracle-stage');
+  stage.innerHTML=`
+    <div style="font-family:var(--font-title);font-size:11px;letter-spacing:0.2em;color:var(--gold-dim);margin-bottom:16px">
+      ✦ 三石展開 — Past · Present · Future
+    </div>
+  `;
+  const ext=document.getElementById('oracle-extended');
+  ext.style.display='block';
+  ext.innerHTML=`
+    <div class="spread-area">
+      ${stones.map((s,i)=>{
+        const col=COLORS_MAP[s.color]||'rgba(201,168,76,0.3)';
+        return `
+          <div class="spread-card" onclick="showDetail(STONES[${s.id}])">
+            <div class="spread-pos">${SPREAD_POSITIONS[i].pos}</div>
+            <div style="font-size:11px;color:var(--text-lo);margin-bottom:6px;font-style:italic">${SPREAD_POSITIONS[i].desc}</div>
+            <div class="spread-gem" style="filter:drop-shadow(0 0 12px ${col})">${s.emoji}</div>
+            <div class="spread-stone-name">${s.ja}</div>
+            <div class="spread-meaning">${s.div}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <button class="btn btn-gold" onclick="runOracle('three')">✦ 再展開</button>
+    </div>
+  `;
+}
+
+function doChakraReading(){
+  const chakraKeys=Object.keys(CHAKRAS);
+  const assigned=chakraKeys.map(ck=>{
+    const pool=STONES.filter(s=>s.chakra===ck);
+    return pool[Math.floor(Math.random()*pool.length)];
+  });
+  const stage=document.getElementById('oracle-stage');
+  stage.innerHTML=`
+    <div style="font-family:var(--font-title);font-size:11px;letter-spacing:0.2em;color:var(--gold-dim)">
+      ☯ チャクラ診断
+    </div>
+  `;
+  const ext=document.getElementById('oracle-extended');
+  ext.style.display='block';
+  ext.innerHTML=`
+    <div class="card">
+      <div style="display:grid;gap:10px;">
+        ${assigned.map((s,i)=>{
+          const ck=chakraKeys[i];
+          const col=CHAKRAS[ck];
+          return s ? `
+            <div style="display:flex;align-items:center;gap:14px;padding:10px;border-radius:6px;background:var(--glass);border:1px solid ${col}30;cursor:pointer" onclick="showDetail(STONES[${s.id}])">
+              <div style="width:12px;height:12px;border-radius:50%;background:${col};box-shadow:0 0 8px ${col};flex-shrink:0"></div>
+              <div style="flex:1">
+                <div style="font-family:var(--font-title);font-size:10px;letter-spacing:0.1em;color:${col}">${ck.toUpperCase()}</div>
+                <div style="font-size:13px;color:var(--text-hi);margin-top:2px">${s.emoji} ${s.ja}</div>
+              </div>
+              <div style="font-size:11px;color:var(--text-mid);font-style:italic;max-width:200px;text-align:right">${s.keywords[0]}・${s.keywords[1]}</div>
+            </div>
+          `:'';
+        }).join('')}
+      </div>
+      <div style="text-align:center;margin-top:14px">
+        <button class="btn btn-gold" onclick="runOracle('chakra')">✦ 再診断</button>
+      </div>
+    </div>
+  `;
+}
+
+function doCompatibility(){
+  const pair=pickStones(2,selectedTheme);
+  const sim=getSimilarity(pair[0],pair[1]);
+  const pct=Math.round(sim*100);
+  const msg=pct>=70?"この二石は深く共鳴し、互いを高め合う。":
+            pct>=50?"適度な緊張が創造的な火花を生む。":
+            "対極に位置するからこそ、補い合う力がある。";
+  const stage=document.getElementById('oracle-stage');
+  stage.innerHTML=`
+    <div class="oracle-result" style="width:100%">
+      <div style="display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:20px">
+        <div style="text-align:center">
+          <div style="font-size:48px">${pair[0].emoji}</div>
+          <div style="font-family:var(--font-title);font-size:12px;color:var(--text-hi);margin-top:6px">${pair[0].ja}</div>
+        </div>
+        <div style="font-size:24px;color:var(--gold)">♾</div>
+        <div style="text-align:center">
+          <div style="font-size:48px">${pair[1].emoji}</div>
+          <div style="font-family:var(--font-title);font-size:12px;color:var(--text-hi);margin-top:6px">${pair[1].ja}</div>
+        </div>
+      </div>
+      <div style="text-align:center;font-family:var(--font-mono);font-size:28px;color:var(--gold);margin-bottom:8px">${pct}%</div>
+      <div class="pbar" style="height:6px;margin-bottom:16px"><div class="pbar-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--gold-dim),var(--gold))"></div></div>
+      <div class="divination-text">${msg}</div>
+      <div style="margin-top:16px;text-align:center">
+        <button class="btn btn-gold" onclick="runOracle('compatibility')">✦ 別の組み合わせ</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('oracle-extended').style.display='none';
+}
+
+// ══════════════════════════════════════════════════════════════
+// 初期化
+// ══════════════════════════════════════════════════════════════
+buildFilters();
+buildCatalog();
+// 初回クラスタリング
+const vecs=STONES.map(featureVector);
+clusterAssignments=kmeans(vecs,7);
+</script>
+</body>
+</html>

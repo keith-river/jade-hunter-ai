@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💎 ヒスイハンター AI — 糸魚川翡翠探索支援システム</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --jade:       #2ecf96;
+  --jade-dim:   #1a9e72;
+  --jade-glow:  rgba(46,207,150,0.18);
+  --ocean-deep: #040d1a;
+  --ocean-mid:  #071828;
+  --ocean-surf: #0a2236;
+  --ocean-card: rgba(10,34,54,0.82);
+  --glass:      rgba(255,255,255,0.04);
+  --glass-edge: rgba(255,255,255,0.10);
+  --sand:       #c8b89a;
+  --sand-light: #e8d8c0;
+  --text-hi:    #e8f4f0;
+  --text-mid:   #8fb8a8;
+  --text-lo:    #4a7060;
+  --amber:      #f0a840;
+  --red:        #e05555;
+  --wave1:      rgba(46,207,150,0.12);
+  --wave2:      rgba(24,100,160,0.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Noto Sans JP',sans-serif;
+  background:var(--ocean-deep);
+  color:var(--text-hi);
+  min-height:100vh;
+  overflow-x:hidden;
+  cursor:default;
+}
+
+/* ── 波背景アニメーション ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 40% at 20% 80%, rgba(46,207,150,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(24,80,140,0.12) 0%, transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── ヘッダー ── */
+header{
+  position:relative;z-index:10;
+  padding:0;
+  background:linear-gradient(180deg, rgba(4,13,26,0.98) 0%, rgba(4,13,26,0.0) 100%);
+}
+.hero{
+  position:relative;
+  height:220px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;
+  border-bottom:1px solid var(--glass-edge);
+}
+.hero-waves{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,
+    var(--ocean-deep) 0%,
+    rgba(7,24,40,1) 50%,
+    rgba(10,34,54,1) 100%
+  );
+}
+.wave-svg{position:absolute;bottom:0;left:0;width:200%;height:80px;animation:waveSlide 8s linear infinite;}
+.wave-svg2{position:absolute;bottom:0;left:0;width:200%;height:60px;animation:waveSlide 12s linear infinite reverse;opacity:0.5;}
+@keyframes waveSlide{from{transform:translateX(0)} to{transform:translateX(-50%)}}
+.hero-content{position:relative;z-index:2;text-align:center;}
+.hero-gem{font-size:48px;line-height:1;filter:drop-shadow(0 0 20px var(--jade));animation:gemPulse 3s ease-in-out infinite;}
+@keyframes gemPulse{0%,100%{filter:drop-shadow(0 0 16px var(--jade))} 50%{filter:drop-shadow(0 0 32px var(--jade)) drop-shadow(0 0 48px rgba(46,207,150,0.4))}}
+.hero-title{
+  font-family:'Noto Serif JP',serif;
+  font-size:28px;font-weight:700;
+  color:var(--text-hi);
+  letter-spacing:0.08em;
+  margin:8px 0 4px;
+  text-shadow:0 0 40px var(--jade-glow);
+}
+.hero-sub{font-size:12px;color:var(--text-mid);letter-spacing:0.2em;text-transform:uppercase;}
+
+/* ── ナビ ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  display:flex;
+  background:rgba(4,13,26,0.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--glass-edge);
+  overflow-x:auto;
+}
+nav::-webkit-scrollbar{display:none}
+.nav-tab{
+  flex:1;min-width:80px;
+  padding:14px 8px;
+  font-size:12px;font-weight:500;
+  color:var(--text-lo);
+  background:transparent;
+  border:none;cursor:pointer;
+  letter-spacing:0.05em;
+  transition:all 0.25s;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;
+}
+.nav-tab:hover{color:var(--text-mid);}
+.nav-tab.active{color:var(--jade);border-bottom-color:var(--jade);}
+
+/* ── メインレイアウト ── */
+main{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:24px 16px 60px;}
+.panel{display:none;animation:fadeUp 0.35s ease;}
+.panel.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)}}
+
+/* ── カード ── */
+.card{
+  background:var(--ocean-card);
+  border:1px solid var(--glass-edge);
+  border-radius:12px;
+  padding:18px 20px;
+  margin-bottom:14px;
+  backdrop-filter:blur(8px);
+  transition:border-color 0.2s;
+}
+.card:hover{border-color:rgba(46,207,150,0.25);}
+.card-jade{border-color:rgba(46,207,150,0.35);background:rgba(46,207,150,0.05);}
+.section-label{
+  font-size:10px;font-weight:700;
+  color:var(--jade);
+  letter-spacing:0.2em;text-transform:uppercase;
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--jade-glow),transparent);}
+
+/* ── 統計グリッド ── */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{
+  background:var(--glass);border:1px solid var(--glass-edge);
+  border-radius:10px;padding:14px;text-align:center;
+}
+.stat-val{font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:var(--jade);}
+.stat-lab{font-size:10px;color:var(--text-mid);margin-top:4px;letter-spacing:0.05em;}
+
+/* ── バッジ ── */
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:0.05em;}
+.badge-jade{background:rgba(46,207,150,0.15);color:var(--jade);border:1px solid rgba(46,207,150,0.3);}
+.badge-ocean{background:rgba(24,100,180,0.15);color:#6ab4f0;border:1px solid rgba(24,100,180,0.3);}
+.badge-amber{background:rgba(240,168,64,0.15);color:var(--amber);border:1px solid rgba(240,168,64,0.3);}
+.badge-red{background:rgba(224,85,85,0.12);color:var(--red);border:1px solid rgba(224,85,85,0.25);}
+
+/* ── ボタン ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 18px;border-radius:8px;
+  font-size:13px;font-weight:500;font-family:'Noto Sans JP',sans-serif;
+  cursor:pointer;transition:all 0.18s;border:1px solid var(--glass-edge);
+  background:var(--glass);color:var(--text-hi);
+}
+.btn:hover{background:rgba(255,255,255,0.08);border-color:var(--glass-edge);}
+.btn-jade{background:rgba(46,207,150,0.15);color:var(--jade);border-color:rgba(46,207,150,0.35);}
+.btn-jade:hover{background:rgba(46,207,150,0.25);}
+.btn-full{width:100%;justify-content:center;}
+.btn:disabled{opacity:0.35;cursor:not-allowed;}
+
+/* ── プログレスバー ── */
+.pbar{height:5px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;margin:5px 0;}
+.pbar-fill{height:100%;border-radius:999px;transition:width 0.6s ease;}
+
+/* ── カレンダー ── */
+.cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+.cal-dow{text-align:center;font-size:10px;color:var(--text-lo);padding:4px 0;letter-spacing:0.05em;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px;}
+.cal-cell{
+  border-radius:8px;padding:7px 3px;text-align:center;
+  font-size:11px;cursor:pointer;
+  border:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.03);
+  transition:all 0.2s;
+}
+.cal-cell:hover{border-color:rgba(46,207,150,0.4);background:rgba(46,207,150,0.06);}
+.cal-cell .cday{font-weight:500;color:var(--text-hi);}
+.cal-cell .cscore{font-size:10px;margin-top:2px;font-family:'DM Mono',monospace;}
+.cal-cell.high{border-color:rgba(46,207,150,0.4);background:rgba(46,207,150,0.08);}
+.cal-cell.high .cscore{color:var(--jade);}
+.cal-cell.mid{border-color:rgba(100,160,240,0.3);background:rgba(24,100,180,0.06);}
+.cal-cell.mid .cscore{color:#6ab4f0;}
+.cal-cell.low .cscore{color:var(--text-lo);}
+.cal-cell.selected{border-color:var(--jade);box-shadow:0 0 0 2px var(--jade-glow);}
+
+/* ── 波グラフ ── */
+.wave-chart{display:flex;align-items:flex-end;gap:4px;height:64px;padding:4px 0;}
+.wave-bar{flex:1;border-radius:3px 3px 0 0;min-height:4px;transition:height 0.5s ease,background 0.5s;}
+
+/* ── タイムライン ── */
+.timeline{border-left:1px solid rgba(46,207,150,0.25);margin-left:10px;padding-left:20px;}
+.tl-item{margin-bottom:16px;position:relative;}
+.tl-item::before{
+  content:'';position:absolute;left:-25px;top:5px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--jade);box-shadow:0 0 8px var(--jade);
+}
+.tl-title{font-size:14px;font-weight:500;color:var(--text-hi);margin-bottom:3px;}
+.tl-body{font-size:12px;color:var(--text-mid);line-height:1.6;}
+
+/* ── クイズ ── */
+.quiz-opt{
+  padding:11px 16px;border-radius:8px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.03);
+  margin-bottom:7px;cursor:pointer;
+  font-size:13px;color:var(--text-hi);
+  transition:all 0.18s;
+}
+.quiz-opt:hover{border-color:rgba(46,207,150,0.35);background:rgba(46,207,150,0.05);}
+.quiz-opt.correct{background:rgba(46,207,150,0.12);border-color:var(--jade);color:var(--jade);}
+.quiz-opt.wrong{background:rgba(224,85,85,0.10);border-color:var(--red);color:var(--red);}
+
+/* ── 石識別グリッド ── */
+.stone-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.stone-card{
+  border-radius:10px;overflow:hidden;
+  border:1px solid rgba(255,255,255,0.08);
+  cursor:pointer;transition:all 0.2s;
+  background:rgba(255,255,255,0.03);
+}
+.stone-card:hover{border-color:var(--jade);transform:translateY(-2px);}
+.stone-card.selected{border:2px solid var(--jade);box-shadow:0 0 16px var(--jade-glow);}
+.stone-img{
+  height:80px;display:flex;align-items:center;
+  justify-content:center;font-size:40px;
+}
+.stone-name{font-size:11px;padding:6px;text-align:center;color:var(--text-mid);}
+
+/* ── ゲームフィールド ── */
+.game-field{
+  position:relative;
+  height:180px;border-radius:10px;overflow:hidden;
+  border:1px solid rgba(255,255,255,0.08);
+  cursor:crosshair;margin-bottom:12px;
+}
+.gf-sky{
+  position:absolute;top:0;left:0;right:0;height:55%;
+  background:linear-gradient(180deg,#040d1a 0%,#071828 100%);
+}
+.gf-sea{
+  position:absolute;top:40%;left:0;right:0;height:25%;
+  background:linear-gradient(180deg,rgba(10,50,90,0.8) 0%,rgba(10,70,110,0.9) 100%);
+}
+.gf-wave-anim{
+  position:absolute;top:38%;left:-50%;width:200%;height:30px;
+  background:radial-gradient(ellipse 50% 100% at 50% 50%, rgba(46,207,150,0.2) 0%,transparent 70%);
+  animation:waveRoll 2.5s ease-in-out infinite;
+}
+@keyframes waveRoll{0%,100%{transform:translateX(0) scaleY(1)} 50%{transform:translateX(5%) scaleY(1.3)}}
+.gf-beach{
+  position:absolute;bottom:0;left:0;right:0;height:48%;
+  background:linear-gradient(180deg,#b8a880 0%,#a89868 100%);
+  border-top:1px solid rgba(200,184,154,0.4);
+}
+.gf-stars{position:absolute;top:0;left:0;right:0;height:40%;pointer-events:none;}
+.star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle 3s infinite;}
+@keyframes twinkle{0%,100%{opacity:0.2} 50%{opacity:0.9}}
+.stone-dot{
+  position:absolute;border-radius:50%;cursor:pointer;
+  transition:transform 0.15s,box-shadow 0.15s;
+  animation:stonePop 0.3s ease;
+}
+@keyframes stonePop{from{transform:scale(0)} to{transform:scale(1)}}
+.stone-dot:hover{transform:scale(1.4)!important;box-shadow:0 0 8px rgba(255,255,255,0.5);}
+.gf-wave-label{
+  position:absolute;top:6px;left:10px;
+  font-size:11px;font-family:'DM Mono',monospace;
+  color:rgba(46,207,150,0.8);font-weight:500;
+  text-shadow:0 0 8px rgba(46,207,150,0.4);
+}
+.gf-day-label{
+  position:absolute;top:6px;right:10px;
+  font-size:11px;color:rgba(200,180,140,0.7);
+}
+
+/* ── ゲームログ ── */
+.game-log{
+  max-height:90px;overflow-y:auto;
+  font-size:11px;font-family:'DM Mono',monospace;
+  color:var(--text-mid);
+  border-top:1px solid rgba(255,255,255,0.06);
+  padding-top:10px;
+  scrollbar-width:thin;scrollbar-color:var(--text-lo) transparent;
+}
+.log-entry{padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.log-jade{color:var(--jade);}
+.log-miss{color:var(--text-lo);}
+
+/* ── コードブロック ── */
+.code-block{
+  background:rgba(2,8,16,0.9);
+  border:1px solid rgba(46,207,150,0.15);
+  border-radius:10px;padding:16px;
+  font-family:'DM Mono',monospace;font-size:11px;
+  line-height:1.8;overflow-x:auto;
+  margin:10px 0;
+  color:#c8e0d8;
+}
+.ck{color:#f0a840;} /* keyword */
+.cs{color:#2ecf96;} /* string */
+.cn{color:#6ab4f0;} /* number */
+.cc{color:#3d6050;} /* comment */
+.cf{color:#c0a0f0;} /* function */
+
+/* ── 結果バナー ── */
+.result-banner{
+  padding:14px 18px;border-radius:10px;
+  text-align:center;font-weight:700;font-size:15px;
+  margin-bottom:12px;letter-spacing:0.03em;
+}
+.banner-win{background:rgba(46,207,150,0.12);color:var(--jade);border:1px solid rgba(46,207,150,0.3);}
+.banner-lose{background:rgba(224,85,85,0.10);color:var(--red);border:1px solid rgba(224,85,85,0.25);}
+
+/* ── API差し替え案内 ── */
+.api-notice{
+  background:rgba(240,168,64,0.08);
+  border:1px solid rgba(240,168,64,0.25);
+  border-radius:8px;padding:10px 14px;
+  font-size:12px;color:var(--amber);
+  margin-bottom:12px;line-height:1.6;
+}
+
+/* ── スポットカード ── */
+.spot-card{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;border-radius:10px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.07);
+  margin-bottom:8px;cursor:pointer;
+  transition:all 0.2s;
+}
+.spot-card:hover{border-color:rgba(46,207,150,0.3);background:rgba(46,207,150,0.04);}
+.spot-rank{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;}
+
+/* ── 凡例 ── */
+.legend{display:flex;gap:14px;font-size:11px;color:var(--text-mid);margin-bottom:10px;flex-wrap:wrap;}
+.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hero">
+    <div class="hero-waves">
+      <svg class="wave-svg" viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,40 C180,70 360,10 540,40 C720,70 900,10 1080,40 C1260,70 1440,20 1440,40 L1440,80 L0,80 Z" fill="rgba(46,207,150,0.10)"/>
+      </svg>
+      <svg class="wave-svg2" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,30 C240,55 480,5 720,30 C960,55 1200,5 1440,30 L1440,60 L0,60 Z" fill="rgba(24,80,160,0.15)"/>
+      </svg>
+    </div>
+    <div class="hero-content">
+      <div class="hero-gem">💎</div>
+      <div class="hero-title">ヒスイハンター AI</div>
+      <div class="hero-sub">Itoigawa Jade Hunting Support System</div>
+    </div>
+  </div>
+</header>
+
+<nav id="nav">
+  <button class="nav-tab active" onclick="switchTab('overview',this)">📋 概要</button>
+  <button class="nav-tab" onclick="switchTab('weather',this)">🌊 天気予測</button>
+  <button class="nav-tab" onclick="switchTab('tutorial',this)">🪨 石の見分け方</button>
+  <button class="nav-tab" onclick="switchTab('game',this)">🎮 採集ゲーム</button>
+  <button class="nav-tab" onclick="switchTab('ai',this)">🤖 AI識別</button>
+  <button class="nav-tab" onclick="switchTab('code',this)">💻 実装ガイド</button>
+</nav>
+
+<main>
+
+<!-- ===== 概要 ===== -->
+<div id="panel-overview" class="panel active">
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-val">1/200</div>
+      <div class="stat-lab">平均発見確率</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:#6ab4f0">3m+</div>
+      <div class="stat-lab">荒天後の目安波高</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--amber)">5機能</div>
+      <div class="stat-lab">主要モジュール</div>
+    </div>
+  </div>
+
+  <div class="section-label">アプリ概要</div>
+  <div class="card">
+    <p style="font-size:13px;color:var(--text-mid);line-height:1.8;">
+      新潟県糸魚川市はヒスイの産地として世界的に有名ですが、一般人が自力で発見できる確率は極めて低い。
+      このアプリは <strong style="color:var(--jade)">天気・波浪データ×AI画像識別×ゲーム学習</strong> を組み合わせ、
+      限られた訪問チャンスを最大活用するための意思決定を支援します。
+    </p>
+  </div>
+
+  <div class="section-label">4大モジュール</div>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-title">🌊 天気・波浪予測 <span class="badge badge-ocean" style="margin-left:6px">Open-Meteo API</span></div>
+      <div class="tl-body">前日波高3m超 → ヒスイが浜に打ち上げられやすい条件。候補日をスコアリングしてカレンダー表示。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-title">📍 スポット推薦 <span class="badge badge-jade" style="margin-left:6px">位置情報DB</span></div>
+      <div class="tl-body">親不知海岸・小滝川礫層・姫川河口など実績エリアを波浪スコアと合算してランキング。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-title">🔍 AI画像識別 <span class="badge badge-amber" style="margin-left:6px">Claude Vision API</span></div>
+      <div class="tl-body">撮影した石の写真をAIが硬度・透光性・結晶構造から分析。「ヒスイ度スコア」と根拠説明を返す。</div>
+    </div>
+    <div class="tl-item" style="margin-bottom:0">
+      <div class="tl-title">🎮 採集シミュレーション <span class="badge badge-red" style="margin-left:6px">時間圧縮ゲーム</span></div>
+      <div class="tl-body">実際の発見確率を再現した時間圧縮ゲーム。有限チャンスの中で最適な意思決定スキルを鍛える。</div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:20px">技術スタック</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;color:var(--text-hi);margin-bottom:8px">フロント版</div>
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.8">
+        HTML + CSS + JavaScript<br>
+        Leaflet.js（地図）<br>
+        Chart.js（波グラフ）<br>
+        Fetch API（天気取得）
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;color:var(--text-hi);margin-bottom:8px">Python版</div>
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.8">
+        Streamlit（UI）<br>
+        Pandas（データ処理）<br>
+        Folium（地図）<br>
+        Anthropic SDK（AI）
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 天気予測 ===== -->
+<div id="panel-weather" class="panel">
+  <div class="api-notice">
+    ⚡ デモ版: ダミーデータで動作。本番では <strong>Open-Meteo Marine API</strong>（無料・APIキー不要）に差し替え。
+  </div>
+
+  <div class="section-label">候補日カレンダー — 8月</div>
+  <div class="legend">
+    <span><span class="legend-dot" style="background:rgba(46,207,150,0.5);"></span>高確率 (60pt+)</span>
+    <span><span class="legend-dot" style="background:rgba(100,160,240,0.5);"></span>中確率 (35-59pt)</span>
+    <span><span class="legend-dot" style="background:rgba(255,255,255,0.1);"></span>低確率</span>
+  </div>
+  <div class="cal-header">
+    <div class="cal-dow">月</div><div class="cal-dow">火</div><div class="cal-dow">水</div>
+    <div class="cal-dow">木</div><div class="cal-dow">金</div>
+    <div class="cal-dow" style="color:#6ab4f0">土</div>
+    <div class="cal-dow" style="color:#e07070">日</div>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+
+  <div id="day-detail" class="card card-jade" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div>
+        <div style="font-size:15px;font-weight:500" id="dd-date"></div>
+        <div id="dd-badge" style="margin-top:5px"></div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:28px;font-weight:700;font-family:'DM Mono',monospace;color:var(--jade)" id="dd-score"></div>
+        <div style="font-size:10px;color:var(--text-lo)">ヒスイ期待スコア</div>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:var(--text-mid)">当日波高</span><span id="dd-wave" style="font-family:'DM Mono',monospace;color:var(--text-hi)"></span>
+      </div>
+      <div class="pbar"><div class="pbar-fill" id="dd-wavebar" style="background:#6ab4f0"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;margin-top:8px">
+        <span style="color:var(--text-mid)">前日波高（重要）</span><span id="dd-prev" style="font-family:'DM Mono',monospace;color:var(--text-hi)"></span>
+      </div>
+      <div class="pbar"><div class="pbar-fill" id="dd-prevbar" style="background:var(--jade)"></div></div>
+    </div>
+    <div style="font-size:12px;color:var(--text-mid);line-height:1.7;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px" id="dd-advice"></div>
+  </div>
+
+  <div class="section-label">波高推移グラフ（7日間）</div>
+  <div class="card">
+    <div class="wave-chart" id="wave-chart"></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-lo);margin-top:6px" id="wave-labels"></div>
+  </div>
+
+  <div class="section-label">おすすめスポット</div>
+  <div id="spot-list">
+    <div class="spot-card">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--text-hi);margin-bottom:3px">🏖️ 親不知海岸</div>
+        <div style="font-size:12px;color:var(--text-mid)">波浪後の漂着石が豊富。アクセスしやすい。</div>
+        <div style="margin-top:5px"><span class="badge badge-jade">荒天翌日◎</span></div>
+      </div>
+      <div class="spot-rank" style="color:var(--jade)">S+</div>
+    </div>
+    <div class="spot-card">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--text-hi);margin-bottom:3px">🏔️ 小滝川礫層</div>
+        <div style="font-size:12px;color:var(--text-mid)">国天然記念物指定。要事前確認。採集実績多数。</div>
+        <div style="margin-top:5px"><span class="badge badge-ocean">要許可確認</span></div>
+      </div>
+      <div class="spot-rank" style="color:#6ab4f0">A</div>
+    </div>
+    <div class="spot-card">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--text-hi);margin-bottom:3px">🌊 姫川河口</div>
+        <div style="font-size:12px;color:var(--text-mid)">上流からの集積エリア。増水・荒天後が狙い目。</div>
+        <div style="margin-top:5px"><span class="badge badge-amber">増水後狙い</span></div>
+      </div>
+      <div class="spot-rank" style="color:var(--amber)">B</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== チュートリアル ===== -->
+<div id="panel-tutorial" class="panel">
+  <div class="section-label">石の識別トレーニング</div>
+  <div class="card">
+    <div style="font-size:13px;color:var(--text-mid);margin-bottom:12px">下の3つの石からヒスイを選んでください。</div>
+    <div class="stone-grid" id="stone-quiz-grid">
+      <div class="stone-card" onclick="selectStone(this,'wrong')">
+        <div class="stone-img" style="background:rgba(46,120,60,0.2)">🪨</div>
+        <div class="stone-name">緑色の石A<br><span style="font-size:10px">(蛇紋岩?)</span></div>
+      </div>
+      <div class="stone-card" onclick="selectStone(this,'jade')">
+        <div class="stone-img" style="background:rgba(46,180,120,0.15)">💚</div>
+        <div class="stone-name">緑白の石B<br><span style="font-size:10px">(繊維状光沢)</span></div>
+      </div>
+      <div class="stone-card" onclick="selectStone(this,'wrong')">
+        <div class="stone-img" style="background:rgba(200,200,200,0.08)">⬜</div>
+        <div class="stone-name">白い石C<br><span style="font-size:10px">(石英?)</span></div>
+      </div>
+    </div>
+    <div id="stone-feedback" style="display:none"></div>
+  </div>
+
+  <div class="section-label">ヒスイ識別クイズ（5問）</div>
+  <div id="quiz-active">
+    <div class="card" id="q-card">
+      <div style="font-size:11px;color:var(--text-lo);font-family:'DM Mono',monospace;margin-bottom:8px" id="q-num">問題 1 / 5</div>
+      <div style="font-size:15px;font-weight:500;color:var(--text-hi);margin-bottom:14px;line-height:1.6" id="q-text"></div>
+      <div id="q-opts"></div>
+      <div id="q-exp" style="display:none;font-size:12px;color:var(--text-mid);margin-top:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:2px solid var(--jade);line-height:1.7"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+      <div style="font-size:13px;color:var(--text-mid)">正答: <span id="q-score" style="font-family:'DM Mono',monospace;color:var(--jade);font-weight:700">0</span> / 5</div>
+      <button class="btn btn-jade" id="q-next" onclick="nextQuestion()" style="display:none">次の問題 →</button>
+    </div>
+  </div>
+  <div id="quiz-done" style="display:none">
+    <div class="result-banner" id="quiz-banner"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-jade btn-full" onclick="restartQuiz()">🔄 もう一度挑戦</button>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:20px">5つの見分けポイント</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;color:var(--jade);margin-bottom:5px">硬度 6.5〜7</div>
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.6">鋼鉄ナイフで傷がつかない。爪や銅貨で傷がつく蛇紋岩と区別。</div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;color:var(--jade);margin-bottom:5px">比重 3.2〜3.4</div>
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.6">同じ大きさの石と比べてズッシリ重い。手のひらで感じる。</div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;color:var(--jade);margin-bottom:5px">繊維状光沢</div>
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.6">光に透かすと白く輝く繊維状の内部構造が見える。</div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;color:var(--jade);margin-bottom:5px">表面の滑らかさ</div>
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.6">海で研磨された表面はロウ状の光沢。ガラス質に近い。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ゲーム ===== -->
+<div id="panel-game" class="panel">
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-val" id="g-chances" style="color:#6ab4f0">10</div>
+      <div class="stat-lab">残りチャンス</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="g-found" style="color:var(--jade)">0</div>
+      <div class="stat-lab">発見数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="g-score-pts" style="color:var(--amber)">0</div>
+      <div class="stat-lab">スコア</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="font-size:12px;color:var(--text-mid)" id="g-status">砂浜の石をクリックして調べよう。荒天翌日が狙い目！</div>
+    <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text-lo)" id="g-day-info">Day 1</div>
+  </div>
+
+  <div class="game-field" id="game-field" onclick="fieldClick(event)">
+    <div class="gf-sky"></div>
+    <div class="gf-stars" id="gf-stars"></div>
+    <div class="gf-sea"></div>
+    <div class="gf-wave-anim"></div>
+    <div class="gf-beach"></div>
+    <div id="game-stones"></div>
+    <div class="gf-wave-label" id="gf-wave-lbl"></div>
+    <div class="gf-day-label" id="gf-day-lbl"></div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn btn-jade" id="btn-search" onclick="searchBeach()">🔍 砂浜を探す</button>
+    <button class="btn" id="btn-next-day" onclick="nextDay()">📅 翌日へ</button>
+    <button class="btn" onclick="resetGame()">↩ リセット</button>
+  </div>
+
+  <div id="game-result" style="display:none"></div>
+  <div class="game-log" id="game-log"></div>
+</div>
+
+<!-- ===== AI識別 ===== -->
+<div id="panel-ai" class="panel">
+  <div class="api-notice">
+    ⚡ デモ版: 実際のAI判定はシミュレーション。本番では <strong>Anthropic Claude Vision API</strong> に差し替えてください。
+  </div>
+
+  <div class="section-label">石の写真をアップロード</div>
+  <div class="card" style="text-align:center;padding:32px 20px;">
+    <div id="upload-area" style="border:2px dashed rgba(46,207,150,0.3);border-radius:10px;padding:28px;cursor:pointer;transition:all 0.2s" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--jade)'" ondragleave="this.style.borderColor='rgba(46,207,150,0.3)'" ondrop="handleDrop(event)">
+      <div style="font-size:36px;margin-bottom:10px">📷</div>
+      <div style="font-size:14px;color:var(--text-mid)">クリックして石の画像を選択</div>
+      <div style="font-size:11px;color:var(--text-lo);margin-top:4px">またはドラッグ＆ドロップ</div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFile(this)">
+    <div id="preview-area" style="display:none;margin-top:14px">
+      <img id="preview-img" style="max-width:200px;max-height:160px;border-radius:8px;border:1px solid var(--glass-edge)">
+      <div style="margin-top:12px">
+        <button class="btn btn-jade" onclick="runAIIdentification()">🤖 AI判定を実行</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ai-result" style="display:none">
+    <div class="section-label">AI判定結果</div>
+    <div class="card card-jade">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:500" id="ai-verdict"></div>
+        <div>
+          <div style="font-size:28px;font-weight:700;font-family:'DM Mono',monospace;color:var(--jade)" id="ai-score-val"></div>
+          <div style="font-size:10px;color:var(--text-lo);text-align:right">ヒスイ度</div>
+        </div>
+      </div>
+      <div class="pbar" style="height:8px;margin-bottom:14px"><div class="pbar-fill" id="ai-score-bar" style="background:linear-gradient(90deg,#1a9e72,#2ecf96)"></div></div>
+      <div id="ai-detail" style="font-size:12px;color:var(--text-mid);line-height:1.8"></div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:4px">API実装コード</div>
+  <div class="code-block"><span class="cc"># anthropic Vision APIでヒスイ画像識別</span>
+<span class="ck">import</span> anthropic, base64
+
+<span class="ck">def</span> <span class="cf">identify_jade</span>(image_path: str) -> dict:
+    client = anthropic.Anthropic()
+    
+    <span class="ck">with</span> open(image_path, <span class="cs">"rb"</span>) <span class="ck">as</span> f:
+        img_b64 = base64.b64encode(f.read()).decode()
+    
+    prompt = <span class="cs">"""この石の画像を分析してください。
+判定基準:
+- 硬度（鉱物学的特性）
+- 比重（ズッシリ感）
+- 光沢（ロウ状・繊維状）
+- 色・透明度
+- 結晶構造
+
+以下の形式でJSONのみ返してください:
+{"jade_score": 0-100, "verdict": "判定結果",
+ "features": ["特徴1","特徴2"],
+ "similar_stones": ["類似石名"], "advice": "採集アドバイス"}"""</span>
+
+    msg = client.messages.create(
+        model=<span class="cs">"claude-opus-4-5"</span>,
+        max_tokens=<span class="cn">512</span>,
+        messages=[{<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: [
+            {<span class="cs">"type"</span>: <span class="cs">"image"</span>, <span class="cs">"source"</span>: {
+                <span class="cs">"type"</span>: <span class="cs">"base64"</span>,
+                <span class="cs">"media_type"</span>: <span class="cs">"image/jpeg"</span>,
+                <span class="cs">"data"</span>: img_b64}},
+            {<span class="cs">"type"</span>: <span class="cs">"text"</span>, <span class="cs">"text"</span>: prompt}
+        ]}]
+    )
+    <span class="ck">return</span> json.loads(msg.content[<span class="cn">0</span>].text)</div>
+</div>
+
+<!-- ===== 実装ガイド ===== -->
+<div id="panel-code" class="panel">
+  <div class="section-label">ハッカソン実装ステップ</div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--jade)">01</span>
+      <div style="font-size:14px;font-weight:500">天気API連携（Open-Meteo）</div>
+    </div>
+    <div class="code-block"><span class="cc"># 無料・APIキー不要・糸魚川の海洋データ</span>
+<span class="ck">async function</span> <span class="cf">fetchWaveData</span>() {
+  <span class="ck">const</span> url = <span class="cs">"https://marine-api.open-meteo.com/v1/marine"</span>;
+  <span class="ck">const</span> params = <span class="ck">new</span> URLSearchParams({
+    latitude:  <span class="cn">37.04</span>,   <span class="cc">// 糸魚川</span>
+    longitude: <span class="cn">137.86</span>,
+    hourly: <span class="cs">"wave_height,wind_wave_height"</span>,
+    forecast_days: <span class="cn">7</span>
+  });
+  <span class="ck">const</span> res = <span class="ck">await</span> fetch(`${url}?${params}`);
+  <span class="ck">return</span> (<span class="ck">await</span> res.json()).hourly;
+}
+<span class="cc">// → wave_height[0..167] (時間別・7日分)</span></div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--jade)">02</span>
+      <div style="font-size:14px;font-weight:500">ヒスイ期待スコア計算ロジック</div>
+    </div>
+    <div class="code-block"><span class="ck">function</span> <span class="cf">jadeScore</span>(todayWave, prevWave) {
+  <span class="cc">// 前日荒天（波高3m超）がキー条件</span>
+  <span class="ck">const</span> prevFactor = Math.min(prevWave / <span class="cn">3.0</span>, <span class="cn">1.0</span>) * <span class="cn">0.6</span>;
+  <span class="cc">// 当日は穏やか → 採集しやすい</span>
+  <span class="ck">const</span> calmFactor = (<span class="cn">1</span> - Math.min(todayWave / <span class="cn">2.0</span>, <span class="cn">1</span>)) * <span class="cn">0.4</span>;
+  <span class="ck">return</span> Math.round((prevFactor + calmFactor) * <span class="cn">100</span>);
+}
+<span class="cc">// 例: 前日4.2m → 当日0.8m → スコア88pt 🎯</span></div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--jade)">03</span>
+      <div style="font-size:14px;font-weight:500">ゲームロジック（確率エンジン）</div>
+    </div>
+    <div class="code-block"><span class="ck">function</span> <span class="cf">calcJadeProb</span>(jadeScore) {
+  <span class="cc">// スコアに応じて発見確率を変動</span>
+  <span class="cc">// 平均1/200 → スコア100で約12%まで上昇</span>
+  <span class="ck">const</span> basePct = <span class="cn">0.005</span>;           <span class="cc">// 0.5%</span>
+  <span class="ck">const</span> boost   = jadeScore / <span class="cn">100</span> * <span class="cn">0.115</span>;
+  <span class="ck">return</span> basePct + boost;
+}
+
+<span class="ck">function</span> <span class="cf">searchStone</span>(jadeScore) {
+  <span class="ck">const</span> prob = <span class="cf">calcJadeProb</span>(jadeScore);
+  <span class="ck">return</span> Math.random() < prob;   <span class="cc">// true = ヒスイ！</span>
+}</div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;color:var(--text-hi);margin-bottom:10px">📦 推奨プロジェクト構成</div>
+    <div class="code-block">jade-hunter/
+├── index.html          <span class="cc"># メインUI</span>
+├── css/
+│   └── style.css
+├── js/
+│   ├── weather.js      <span class="cc"># Open-Meteo API連携</span>
+│   ├── scoring.js      <span class="cc"># ヒスイスコア計算</span>
+│   ├── game.js         <span class="cc"># ゲームエンジン</span>
+│   ├── ai.js           <span class="cc"># Claude Vision API</span>
+│   └── map.js          <span class="cc"># Leaflet地図</span>
+├── data/
+│   └── spots.json      <span class="cc"># スポットDB</span>
+└── assets/
+    └── stones/         <span class="cc"># 学習用石画像</span></div>
+  </div>
+
+  <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+    <div class="card" style="padding:12px 16px">
+      <div style="font-size:13px;font-weight:500;margin-bottom:6px">🏆 ハッカソン審査ポイント</div>
+      <div style="font-size:12px;color:var(--text-mid);line-height:1.9">
+        ✅ Open-Meteo APIの実データ連携<br>
+        ✅ ヒスイスコアロジックの独自性・精度<br>
+        ✅ AI画像識別の精度・UX<br>
+        ✅ ゲームの面白さ・教育効果<br>
+        ✅ スポット推薦の根拠説明
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- 波SVGの使い回し（ヘッダー用） -->
+<script>
+// ── スター生成 ──
+(function(){
+  const s = document.getElementById('gf-stars');
+  for(let i=0;i<18;i++){
+    const star = document.createElement('div');
+    star.className='star';
+    star.style.left=Math.random()*100+'%';
+    star.style.top=Math.random()*100+'%';
+    star.style.animationDelay=Math.random()*3+'s';
+    star.style.width=star.style.height=(Math.random()>0.7?3:2)+'px';
+    s.appendChild(star);
+  }
+})();
+
+// ── タブ切替 ──
+function switchTab(id, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── カレンダーデータ ──
+const calData = [
+  {d:'8/1',w:1.2,pw:1.0},{d:'8/2',w:2.1,pw:1.2},{d:'8/3',w:3.4,pw:2.1},{d:'8/4',w:1.1,pw:3.4},
+  {d:'8/5',w:0.8,pw:1.1},{d:'8/6',w:1.0,pw:0.8},{d:'8/7',w:4.2,pw:1.0},{d:'8/8',w:2.8,pw:4.2},
+  {d:'8/9',w:0.9,pw:2.8},{d:'8/10',w:0.7,pw:0.9},{d:'8/11',w:1.1,pw:0.7},{d:'8/12',w:0.8,pw:1.1},
+  {d:'8/13',w:3.1,pw:0.8},{d:'8/14',w:1.5,pw:3.1},{d:'8/15',w:0.9,pw:1.5}
+];
+
+function jadeScore(cw,pw){
+  return Math.round((Math.min(pw/3,1)*0.6 + (1-Math.min(cw/2,1))*0.4)*100);
+}
+
+// ── カレンダー描画 ──
+(function buildCal(){
+  const g = document.getElementById('cal-grid');
+  calData.forEach((d,i)=>{
+    const s = jadeScore(d.w,d.pw);
+    const cls = s>=60?'high':s>=35?'mid':'low';
+    const el = document.createElement('div');
+    el.className=`cal-cell ${cls}`;
+    el.innerHTML=`<div class="cday">${d.d}</div><div class="cscore">${s}pt</div>`;
+    el.onclick=()=>showDayDetail(d,s,i);
+    g.appendChild(el);
+  });
+})();
+
+(function buildWaveChart(){
+  const c=document.getElementById('wave-chart');
+  const l=document.getElementById('wave-labels');
+  calData.slice(0,7).forEach(d=>{
+    const b=document.createElement('div');
+    b.className='wave-bar';
+    const h=Math.max(d.w/5*100,6);
+    b.style.height=h+'%';
+    b.style.background=d.w>=3?'rgba(46,207,150,0.7)':d.w>=1.5?'rgba(100,160,240,0.5)':'rgba(100,120,140,0.3)';
+    c.appendChild(b);
+    const lbl=document.createElement('div');lbl.textContent=d.d;l.appendChild(lbl);
+  });
+})();
+
+function showDayDetail(d,s,i){
+  document.querySelectorAll('.cal-cell').forEach(c=>c.classList.remove('selected'));
+  document.querySelectorAll('.cal-cell')[i].classList.add('selected');
+  const dd=document.getElementById('day-detail');
+  dd.style.display='block';
+  document.getElementById('dd-date').textContent=`${d.d} 糸魚川市`;
+  document.getElementById('dd-score').textContent=s+'pt';
+  const badgeEl=document.getElementById('dd-badge');
+  if(s>=60) badgeEl.innerHTML='<span class="badge badge-jade">🌊 絶好のチャンス！</span>';
+  else if(s>=35) badgeEl.innerHTML='<span class="badge badge-ocean">まずまずのチャンス</span>';
+  else badgeEl.innerHTML='<span class="badge" style="background:rgba(255,255,255,0.06);color:var(--text-lo);border:1px solid rgba(255,255,255,0.08)">今日は厳しいかも</span>';
+  document.getElementById('dd-wave').textContent=d.w.toFixed(1)+' m';
+  document.getElementById('dd-wavebar').style.width=Math.min(d.w/5*100,100)+'%';
+  document.getElementById('dd-prev').textContent=d.pw.toFixed(1)+' m（前日）';
+  document.getElementById('dd-prevbar').style.width=Math.min(d.pw/5*100,100)+'%';
+  const adv = s>=60
+    ? '前日の荒波でヒスイが砂浜に打ち上げられた可能性大。早朝5〜7時の干潮後が最良のタイミング。砂浜をゆっくり目線を下げて歩こう。'
+    : s>=35
+    ? '荒天の翌日に近い条件。丁寧に探せば見つかるかも。波打ち際の石溜まりを重点的にチェック。'
+    : '波が穏やかすぎて打ち上げが期待しにくい。次の荒天後を待つか、川沿いエリアへ。';
+  document.getElementById('dd-advice').textContent=adv;
+  dd.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── 石識別クイズ ──
+function selectStone(el,type){
+  document.querySelectorAll('.stone-card').forEach(c=>{c.classList.remove('selected');c.onclick=null;});
+  el.classList.add('selected');
+  const fb=document.getElementById('stone-feedback');
+  fb.style.display='block';
+  if(type==='jade'){
+    fb.innerHTML='<div class="result-banner banner-win">✅ 正解！石Bがヒスイです。緑白色の繊維状光沢・ズッシリ感・光を透かした白い輝きが特徴。</div>';
+  } else {
+    fb.innerHTML='<div class="result-banner banner-lose">❌ 残念。正解は石Bです。石Aは蛇紋岩（爪で傷つく・軽い）、石Cは石英（軽すぎる・光沢が違う）。</div>';
+  }
+}
+
+// ── クイズ ──
+const qData=[
+  {q:'ヒスイのモース硬度は？',opts:['3〜4','5〜6','6.5〜7','8〜9'],a:2,exp:'ヒスイの硬度は6.5〜7。ナイフ（硬度5.5）で傷がつかず、蛇紋岩（3〜4）と明確に区別できる。'},
+  {q:'本物のヒスイを光に透かすと？',opts:['完全に透明になる','繊維状の白い輝きが見える','黒く見える','蛍光する'],a:1,exp:'ヒスイは微細な結晶が絡み合う繊維状構造。光に透かすと白く輝く独特の内部光沢がある。'},
+  {q:'ヒスイの比重（密度）は？',opts:['1.5〜2.0','2.2〜2.5','3.2〜3.4','4.0以上'],a:2,exp:'ヒスイの比重は3.2〜3.4。同じ大きさの石と比べてズッシリ重く、手に持てばすぐわかる。'},
+  {q:'ヒスイと最も間違えやすい鉱物は？',opts:['花崗岩','蛇紋岩','砂岩','玄武岩'],a:1,exp:'蛇紋岩は緑色でよく似るが、爪で傷がつくほど柔らかい（硬度3〜4）。爪で引っ掻いて判断できる。'},
+  {q:'ヒスイが浜辺に出やすい条件は？',opts:['晴天続きの翌日','台風・荒天の翌日','満月の夜','干潮時刻のみ'],a:1,exp:'荒れた海が海底・河床のヒスイをかき上げ、浜辺に打ち上げる。荒天の翌朝が最大のチャンス。'}
+];
+let qIdx=0,qScore=0;
+
+function loadQ(){
+  const q=qData[qIdx];
+  document.getElementById('q-num').textContent=`問題 ${qIdx+1} / 5`;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('q-exp').style.display='none';
+  document.getElementById('q-next').style.display='none';
+  const opts=document.getElementById('q-opts');
+  opts.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const d=document.createElement('div');d.className='quiz-opt';d.textContent=o;
+    d.onclick=()=>answerQ(i,d,q);opts.appendChild(d);
+  });
+}
+function answerQ(i,el,q){
+  document.querySelectorAll('.quiz-opt').forEach(o=>o.onclick=null);
+  if(i===q.a){el.classList.add('correct');qScore++;document.getElementById('q-score').textContent=qScore;}
+  else{el.classList.add('wrong');document.querySelectorAll('.quiz-opt')[q.a].classList.add('correct');}
+  const expEl=document.getElementById('q-exp');
+  expEl.textContent='💡 '+q.exp;expEl.style.display='block';
+  if(qIdx<4) document.getElementById('q-next').style.display='inline-flex';
+  else setTimeout(finishQ,700);
+}
+function nextQuestion(){qIdx++;loadQ();}
+function finishQ(){
+  document.getElementById('quiz-active').style.display='none';
+  document.getElementById('quiz-done').style.display='block';
+  const pct=Math.round(qScore/5*100);
+  const banner=document.getElementById('quiz-banner');
+  banner.className='result-banner '+(pct>=80?'banner-win':'banner-lose');
+  banner.textContent=`${qScore}/5問正解 (${pct}%)　${pct>=80?'🎉 ヒスイマスター！':pct>=60?'👍 合格！':'📚 もう少し勉強しよう'}`;
+}
+function restartQuiz(){
+  qIdx=0;qScore=0;
+  document.getElementById('q-score').textContent=0;
+  document.getElementById('quiz-active').style.display='block';
+  document.getElementById('quiz-done').style.display='none';
+  loadQ();
+}
+loadQ();
+
+// ── ゲーム ──
+let game={chances:10,found:0,day:1,pts:0,prevWave:1.0,todayWave:1.5};
+
+function waveText(w){return w>=3?`🌊 荒波 ${w.toFixed(1)}m`:w>=1.5?`〜 やや荒れ ${w.toFixed(1)}m`:`— 穏やか ${w.toFixed(1)}m`;}
+
+function updateGameUI(){
+  document.getElementById('g-chances').textContent=game.chances;
+  document.getElementById('g-found').textContent=game.found;
+  document.getElementById('g-score-pts').textContent=game.pts;
+  document.getElementById('gf-wave-lbl').textContent=waveText(game.todayWave);
+  document.getElementById('gf-day-lbl').textContent=`Day ${game.day}`;
+  document.getElementById('g-day-info').textContent=`Day ${game.day} | 前日波${game.prevWave.toFixed(1)}m`;
+  document.getElementById('btn-search').disabled=game.chances<=0;
+}
+
+function resetGame(){
+  game={chances:10,found:0,day:1,pts:0,prevWave:1.0,todayWave:1.5};
+  document.getElementById('game-stones').innerHTML='';
+  document.getElementById('game-log').innerHTML='';
+  document.getElementById('game-result').style.display='none';
+  updateGameUI();
+  addLog('ゲーム開始。砂浜を探してヒスイを見つけよう！','');
+}
+
+function searchBeach(){
+  if(game.chances<=0) return;
+  game.chances--;
+  const s=jadeScore(game.todayWave,game.prevWave);
+  const jProb=0.005+s/100*0.115;
+  const count=4+Math.floor(Math.random()*5);
+  const field=document.getElementById('game-stones');
+  field.innerHTML='';
+  for(let i=0;i<count;i++){
+    const isJ=Math.random()<jProb;
+    const x=5+Math.random()*88, y=52+Math.random()*38;
+    const dot=document.createElement('div');
+    dot.className='stone-dot';
+    const sz=10+Math.random()*6;
+    dot.style.cssText=`left:${x}%;top:${y}%;width:${sz}px;height:${sz}px;background:${isJ?'#5DCAA5':'#888780'};`;
+    dot.dataset.jade=isJ;
+    dot.onclick=e=>{e.stopPropagation();checkDot(dot,isJ,s);};
+    field.appendChild(dot);
+  }
+  updateGameUI();
+  addLog(`砂浜を調査（スコア${s}pt）— ${count}個の石が見えます。`,'');
+  if(game.chances<=0){ document.getElementById('btn-search').disabled=true; }
+}
+
+function checkDot(dot,isJ,s){
+  dot.onclick=null;
+  if(isJ){
+    dot.style.background='#2ecf96';
+    dot.style.boxShadow='0 0 12px rgba(46,207,150,0.8)';
+    dot.innerHTML='💎';dot.style.fontSize='9px';dot.style.display='flex';dot.style.alignItems='center';dot.style.justifyContent='center';
+    game.found++;game.pts+=s*10;
+    updateGameUI();
+    addLog(`💎 ヒスイ発見！ +${s*10}pt　(通算${game.found}個)`,'jade');
+    document.getElementById('g-status').textContent='💎 ヒスイ発見！素晴らしい！';
+  } else {
+    dot.style.opacity='0.3';dot.style.transform='scale(0.7)';
+    addLog('石を調べたがヒスイではなかった…','miss');
+    document.getElementById('g-status').textContent='ヒスイではなかった。他の石も探してみよう。';
+  }
+  if(game.chances<=0 && !document.getElementById('game-result').style.display!=='none'){
+    setTimeout(showGameResult,800);
+  }
+}
+
+function nextDay(){
+  game.prevWave=game.todayWave;
+  game.todayWave=parseFloat((0.4+Math.random()*4.5).toFixed(1));
+  game.day++;
+  document.getElementById('game-stones').innerHTML='';
+  const s=jadeScore(game.todayWave,game.prevWave);
+  updateGameUI();
+  addLog(`📅 ${game.day}日目。波${game.todayWave.toFixed(1)}m → 期待スコア${s}pt`,'');
+  document.getElementById('g-status').textContent=`${game.day}日目。ヒスイ期待スコア: ${s}pt`;
+  document.getElementById('btn-search').disabled=game.chances<=0;
+}
+
+function showGameResult(){
+  const res=document.getElementById('game-result');
+  res.style.display='block';
+  const win=game.found>0;
+  res.innerHTML=`<div class="result-banner ${win?'banner-win':'banner-lose'}">
+    ${win?`🎉 ${game.found}個のヒスイを発見！ ${game.pts}pt`:'😢 今回は見つからなかった…次のチャンスを狙え！'}
+  </div>
+  <button class="btn btn-jade btn-full" onclick="resetGame()" style="margin-top:6px">↩ もう一度プレイ</button>`;
+}
+
+function fieldClick(e){
+  if(e.target.id==='game-field'||e.target.classList.contains('gf-beach')){
+    document.getElementById('g-status').textContent='「砂浜を探す」ボタンで石を出現させよう！';
+  }
+}
+
+function addLog(msg,type){
+  const log=document.getElementById('game-log');
+  const d=document.createElement('div');
+  d.className='log-entry'+(type==='jade'?' log-jade':type==='miss'?' log-miss':'');
+  d.textContent=msg;
+  log.prepend(d);
+}
+
+resetGame();
+
+// ── AI識別（デモ） ──
+function handleFile(input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('preview-img').src=e.target.result;
+    document.getElementById('preview-area').style.display='block';
+    document.getElementById('ai-result').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-area').style.borderColor='rgba(46,207,150,0.3)';
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/')){
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      document.getElementById('preview-img').src=ev.target.result;
+      document.getElementById('preview-area').style.display='block';
+      document.getElementById('ai-result').style.display='none';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+function runAIIdentification(){
+  // デモ: ランダムなスコア（本番はClaude Vision APIに差し替え）
+  const score=Math.floor(Math.random()*80)+10;
+  const isJade=score>=60;
+  document.getElementById('ai-result').style.display='block';
+  document.getElementById('ai-verdict').textContent=isJade?'💎 ヒスイの可能性が高い':'🪨 ヒスイではない可能性が高い';
+  document.getElementById('ai-score-val').textContent=score+'%';
+  document.getElementById('ai-score-bar').style.width=score+'%';
+  document.getElementById('ai-score-bar').style.background=isJade?'linear-gradient(90deg,#1a9e72,#2ecf96)':'linear-gradient(90deg,#6a3020,#e05555)';
+  const details=isJade
+    ?`✅ 繊維状光沢が確認できます\n✅ 色調が翡翠の典型的な緑白色\n✅ 表面の質感がロウ状光沢に近い\n⚠️ 硬度・比重は実物確認が必要`
+    :`❌ 光沢がガラス質（石英の可能性）\n❌ 結晶構造が蛇紋岩に近い\n❌ 比重が軽そうな質感\n💡 ヒスイの産地に持参して専門家に確認を`;
+  document.getElementById('ai-detail').innerHTML=details.replace(/\n/g,'<br>');
+}
+</script>
+</body>
+</html>
